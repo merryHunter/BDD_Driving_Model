@@ -92,8 +92,13 @@ def get_interpolated_speed_xy(res, hz=15):
         speed[i,:] = vec(speed0[i], course[i])
 
     tot_ms = res['endTime'] - res['startTime']
+
+    # TODO: now we assume for 10fps that we load europilot data and we need to add 1 more output
+    if hz == 10:
     # total number of output
-    nout = tot_ms * hz // 1000
+        nout = int(tot_ms * hz // 1000) + 1
+    else:
+        nout = int(tot_ms * hz // 1000)
     out = np.zeros((nout, 2), dtype=np.float32)
     
     # if time is t second, there should be t+1 points
