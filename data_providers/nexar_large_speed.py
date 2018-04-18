@@ -33,8 +33,8 @@ city_frames = 5
 city_lock = multiprocessing.Lock()
 
 # Visual preprocessing FLAGS
-tf.app.flags.DEFINE_integer('IM_WIDTH', 640, '''width of image in TFRecord''')
-tf.app.flags.DEFINE_integer('IM_HEIGHT', 360, '''height of image in TFRecord''')
+tf.app.flags.DEFINE_integer('IM_WIDTH', 535, '''width of image in TFRecord''')
+tf.app.flags.DEFINE_integer('IM_HEIGHT', 315, '''height of image in TFRecord''')
 tf.app.flags.DEFINE_string('resize_images', "",
                            """If not empty resize the images to the required shape. Shape format: height,width""")
 tf.app.flags.DEFINE_integer('decode_downsample_factor', 1,
@@ -73,7 +73,7 @@ tf.app.flags.DEFINE_string('city_label_list','/data/hxu/fineGT/trainval_labels.t
                            'the privilege training segmentation label image index')
 tf.app.flags.DEFINE_integer('city_data',0,'if we want side training with segmentation, set this to 1')
 tf.app.flags.DEFINE_integer('only_seg',0, 'if we want to only use segmentation, set this to 1')
-tf.app.flags.DEFINE_integer('FRAMES_IN_SEG',540,
+tf.app.flags.DEFINE_integer('FRAMES_IN_SEG',360,
                             'How many frames in a single TFRecord, this is conservatively set to 36second * 15fps')
 tf.app.flags.DEFINE_integer('city_batch', 1, "segmentation batch size")
 tf.app.flags.DEFINE_boolean('is_small_side_info_dataset', False,
@@ -81,12 +81,12 @@ tf.app.flags.DEFINE_boolean('is_small_side_info_dataset', False,
 tf.app.flags.DEFINE_boolean('low_res', False,
                             '''The BDD video dataset comes with 2 resolution, this flags optionally allow
                             to use the lower resolution dataset''')
-tf.app.flags.DEFINE_float('frame_rate', 15.0, 'the frame_rate we have for the videos')
+tf.app.flags.DEFINE_float('frame_rate', 10.0, 'the frame_rate we have for the videos')
 tf.app.flags.DEFINE_string('train_filename', 'train_small.txt',
                            '''the file name list we used to train. This is useful for super large dataset, such as
                            the low resolution part of BDD video dataset. It avoids to Glob all files when training start''')
 tf.app.flags.DEFINE_boolean('release_batch', False, 'True if the dataset is the finally released version' )
-tf.app.flags.DEFINE_boolean('use_data_augmentation', False, 'whether to augment the training data' )
+tf.app.flags.DEFINE_boolean('use_data_augmentation', True, 'whether to augment the training data' )
 
 tf.app.flags.DEFINE_integer('retain_first_k_training_example', -1,
                             'retrain the first k training example if >0 ')
@@ -112,7 +112,8 @@ tf.app.flags.DEFINE_integer('inflate_MKZ_factor', -1,
 
 tf.app.flags.DEFINE_boolean('use_nan_padding', False,
                             'Whether to use nan padding in the data provider')
-
+tf.app.flags.DEFINE_integer('low_thresh_factor', 2,
+                            'Low thresh multiplaction factor for tuning turning heuristics and balancing straight class label')
 # the newly designed class has to have those methods
 # especially the reader() that reads the binary record and the
 # parse_example_proto that parse a single record into an instance
@@ -484,7 +485,7 @@ class MyDataset(Dataset):
 
         enum = MyDataset.turn_str2int
 
-        thresh_low = (2*math.pi / 360)*1
+        thresh_low = (2*math.pi / 360)* FLAGS.low_thresh_factor
         thresh_high = (2*math.pi / 360)*35
         thresh_slight_low = (2*math.pi / 360)*3
 

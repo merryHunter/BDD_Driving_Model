@@ -9,8 +9,8 @@ import tensorflow as tf
 FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
-FLAGS.pretrained_model_path = "/data/yang/si/data/pretrained_models/tf.caffenet.bin"
-FLAGS.data_dir = "/data/yang_cache/tfrecord_release/tfrecords"
+FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
+FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'
@@ -195,8 +195,8 @@ def ptrain_1000_baseline_FCN(phase):
 ############### shared settings ##########################
 ######################################################################################
 def set_gpu(gpus):
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    num_gpus = len(gpus.split(","))
+#    os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+    num_gpus = 1 #len(gpus.split(","))
     FLAGS.num_gpus = num_gpus
 
 def set_gpu_ids(phase, train, eval_or_test):
@@ -221,7 +221,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 10000000
+    FLAGS.max_steps = 1000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
@@ -233,7 +233,8 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.arch_selection = "LRCN"
     FLAGS.sub_arch_selection = "car_discrete"
     FLAGS.lstm_hidden_units = "64"
-    FLAGS.add_dropout_layer = False
+    FLAGS.add_dropout_layer = True #False
+    FLAGS.keep_prob = 0.5
     FLAGS.cnn_feature = "drop7"
     FLAGS.no_batch_norm = True
     FLAGS.weight_decay_exclude_bias = False
@@ -243,7 +244,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
 
     # data related
     FLAGS.ego_previous_nstep = 30
-    FLAGS.n_sub_frame = 108
+    FLAGS.n_sub_frame = 38 # to prevent CUDA OOM
     FLAGS.release_batch = True
     FLAGS.resize_images = "228,228"
     FLAGS.balance_drop_prob = -1.0
