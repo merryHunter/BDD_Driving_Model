@@ -255,6 +255,8 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
   sess.run(init_op)
 
   num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
+  print(FLAGS.batch_size)
+  print(FLAGS.num_examples)
   for step in range(num_iter):
     t0 = time.time()
     if coord.should_stop():
@@ -275,7 +277,8 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
                               isample,
                               True,
                               os.path.join(FLAGS.eval_dir, FLAGS.eval_viz_id),
-                              string_type='image')
+#                              string_type='image')
+			)
       tin_out_v_2 = tin_out_v[2]
     else:
       if FLAGS.city_data:

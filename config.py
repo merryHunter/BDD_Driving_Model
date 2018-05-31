@@ -9,8 +9,8 @@ import tensorflow as tf
 FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
-FLAGS.pretrained_model_path = "/data/yang/si/data/pretrained_models/tf.caffenet.bin"
-FLAGS.data_dir = "/data/yang_cache/tfrecord_release/tfrecords"
+FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
+FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-1000"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'
@@ -195,8 +195,8 @@ def ptrain_1000_baseline_FCN(phase):
 ############### shared settings ##########################
 ######################################################################################
 def set_gpu(gpus):
-    os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    num_gpus = len(gpus.split(","))
+#    os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+    num_gpus = 1 #2 #len(gpus.split(","))
     FLAGS.num_gpus = num_gpus
 
 def set_gpu_ids(phase, train, eval_or_test):
@@ -364,7 +364,7 @@ def common_config(phase):
     FLAGS.num_preprocess_threads = 4
     FLAGS.display_loss = 10
     FLAGS.display_summary = 100
-    FLAGS.checkpoint_interval = 5000
+    FLAGS.checkpoint_interval = 250
     FLAGS.input_queue_memory_factor = 8
     FLAGS.examples_per_shard=1
     FLAGS.use_MIMO_inputs_pipeline=True

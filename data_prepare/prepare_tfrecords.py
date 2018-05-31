@@ -65,7 +65,7 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=value))
 
 def probe_file(filename):
-    cmnd = ['ffprobe', '-show_format', '-show_streams', '-pretty', filename]
+    cmnd = ['/home/chernuka/tools/ffmpeg-git-20180526-32bit-static/ffprobe', '-show_format', '-show_streams', '-pretty', filename]
     p = subprocess.Popen(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #print filename
     out, err = p.communicate()
@@ -150,7 +150,7 @@ def read_one_video(video_path, jobid):
 
     image_list=[]
     if FLAGS.low_res:
-        cmnd = ['ffmpeg', 
+        cmnd = ['/home/chernuka/tools/ffmpeg-git-20180526-32bit-static/ffmpeg', 
                 '-i', video_path, 
                 '-f', 'image2pipe',
                 '-loglevel', 'panic', 
@@ -211,7 +211,7 @@ def read_one_video(video_path, jobid):
             shutil.rmtree(cache_images)
         os.mkdir(cache_images)
 
-        call(['ffmpeg',
+        call(['/home/chernuka/tools/ffmpeg-git-20180526-32bit-static/ffmpeg',
             '-i', video_path,
             '-r', '15',
             '-qscale:v', '10',

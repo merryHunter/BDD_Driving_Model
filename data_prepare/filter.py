@@ -5,7 +5,7 @@ from ffprobe import FFProbe
 
 
 def probe_file(filename):
-    cmnd = ['ffprobe', '-show_format', '-pretty', filename]
+    cmnd = ['/home/chernuka/tools/ffmpeg-git-20180526-32bit-static/ffprobe', '-show_format', '-pretty', filename]
     p = subprocess.Popen(cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #print filename
     out, err =  p.communicate()
@@ -24,7 +24,7 @@ def probe_file(filename):
 
 if __name__ == '__main__':
     dataset_path = sys.argv[1]
-    output_index = os.path.join(dataset_path, "video_filtered_38_60.txt")
+    output_index =  "video_filtered_38_60.txt"
 
     info_path = os.path.join(dataset_path, "info")
     video_path = os.path.join(dataset_path, "videos")

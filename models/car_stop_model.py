@@ -130,7 +130,9 @@ tf.app.flags.DEFINE_float('ptrain_weight', 1.0,
                           'The weight of the privilege loss')
 tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
-tf.app.flags.DEFINE_string('class_balance_path', "",
+tf.app.flags.DEFINE_string('class_balance_path', 
+#"",
+"/home/chernuka/europilot/empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')

@@ -157,6 +157,7 @@ class MyDataset(Dataset):
             else:
                 return 28738
         if self.subset == 'validation':
+	    return 50
             if FLAGS.custom_dataset_name == "nexar_MKZ":
                 return 29
             elif FLAGS.custom_dataset_name == "nexar_vehicle_ahead":
@@ -180,6 +181,7 @@ class MyDataset(Dataset):
                 return 1906
 
         if self.subset == "test":
+            return 400
             if FLAGS.release_batch:
                 return 3561
 

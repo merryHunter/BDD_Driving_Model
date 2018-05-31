@@ -44,14 +44,14 @@ def images2video_highqual(frame_rate,
     os.chdir(pwd)
 
     return os.path.join(dir_name, video_name)
-
+my_count = 0
 def images2video(images, frame_rate,
                  name="temp_name", dir_name="temp_dir", highquality=True):
     images = np.uint8(images)
     shape = images.shape
     assert (len(shape) == 4)
     assert (shape[3] == 3 or shape[3] == 1)
-
+    global my_count
     # make dir if not exists
     if not os.path.isdir(dir_name):
         os.mkdir(dir_name)
@@ -62,17 +62,18 @@ def images2video(images, frame_rate,
     print("writing images")
     for i in range(shape[0]):
         j = Image.fromarray(images[i, :, :, :])
-        j.save("%05d.jpeg" % i, "jpeg", quality=93)
-
+        j.save("%05d.jpeg" % my_count, "jpeg", quality=93)
+        my_count += 1
+        break
     print("converting to video")
     video_name = name+'.mp4'
 
     quality_str = '16' if highquality else '28'
     cmd = "ffmpeg -y -f image2 -r " + str(frame_rate) + " -pattern_type glob -i '*.jpeg' -crf "+quality_str+" -preset veryfast " + \
           "-threads 16 -vcodec libx264  -pix_fmt yuv420p " + video_name
-    call(cmd, shell=True)
+#    call(cmd, shell=True)
 
-    call("rm *.jpeg", shell=True)
+#    call("rm *.jpeg", shell=True)
     os.chdir(pwd)
 
     return os.path.join(dir_name, video_name)
@@ -87,11 +88,11 @@ def play_video(path):
 def visualize_images(images, frame_rate,
                      name="temp_name", dir_name="temp_dir",delete_temp=True):
     path = images2video(images, frame_rate, name, dir_name)
-    out = play_video(path)
+#    out = play_video(path)
     if delete_temp:
         assert not("*" in dir_name)
         shutil.rmtree(dir_name)
-    return out
+    return None #out
 
 def write_text_on_image(image, string,
                         lines=[],
@@ -249,7 +250,7 @@ def vis_reader_stop_go(tout, prediction,frame_rate,  j=0, save_visualize = False
                                 delete_temp=False)
     else:
         return visualize_images(images_txt, frame_rate)
-
+k = 0
 def vis_discrete(tout, predict, frame_rate,
                  j=0, save_visualize=False, dir_name="temp"):
     import data_providers.nexar_large_speed as provider
