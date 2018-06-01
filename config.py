@@ -196,7 +196,7 @@ def ptrain_1000_baseline_FCN(phase):
 ######################################################################################
 def set_gpu(gpus):
 #    os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    num_gpus = 1 #2 #len(gpus.split(","))
+    num_gpus = 1 #len(gpus.split(","))
     FLAGS.num_gpus = num_gpus
 
 def set_gpu_ids(phase, train, eval_or_test):
@@ -221,7 +221,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 10000000
+    FLAGS.max_steps = 3000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
@@ -233,7 +233,8 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.arch_selection = "LRCN"
     FLAGS.sub_arch_selection = "car_discrete"
     FLAGS.lstm_hidden_units = "64"
-    FLAGS.add_dropout_layer = False
+    FLAGS.add_dropout_layer = True
+    FLAGS.keep_prob = 0.5
     FLAGS.cnn_feature = "drop7"
     FLAGS.no_batch_norm = True
     FLAGS.weight_decay_exclude_bias = False
@@ -364,7 +365,7 @@ def common_config(phase):
     FLAGS.num_preprocess_threads = 4
     FLAGS.display_loss = 10
     FLAGS.display_summary = 100
-    FLAGS.checkpoint_interval = 250
+    FLAGS.checkpoint_interval = 500
     FLAGS.input_queue_memory_factor = 8
     FLAGS.examples_per_shard=1
     FLAGS.use_MIMO_inputs_pipeline=True

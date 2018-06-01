@@ -86,7 +86,7 @@ tf.app.flags.DEFINE_string('train_filename', 'train_small.txt',
                            '''the file name list we used to train. This is useful for super large dataset, such as
                            the low resolution part of BDD video dataset. It avoids to Glob all files when training start''')
 tf.app.flags.DEFINE_boolean('release_batch', False, 'True if the dataset is the finally released version' )
-tf.app.flags.DEFINE_boolean('use_data_augmentation', False, 'whether to augment the training data' )
+tf.app.flags.DEFINE_boolean('use_data_augmentation', True, 'whether to augment the training data' )
 
 tf.app.flags.DEFINE_integer('retain_first_k_training_example', -1,
                             'retrain the first k training example if >0 ')
@@ -128,6 +128,10 @@ class MyDataset(Dataset):
         # TODO: Edit number
 
         if self.subset == 'train':
+#	This parameter changes training !
+#       Don't put actual number of training files! Due to unknown reasons, if you do that model 
+#	accuracy drops to 0.09!!!!
+#            return 1000 ---> don't do this!!
             if FLAGS.retain_first_k_training_example > 0:
                 return FLAGS.retain_first_k_training_example
 
@@ -925,7 +929,7 @@ class MyDataset(Dataset):
 
         # visualize the video using multiple images
         # their is no way to visualize time sequence now, so isvalid and isstop couldn't be visualized
-        if not FLAGS.no_image_input:
+        if False: #not FLAGS.no_image_input:
             decoded = net_inputs[0]
             visualize = tf.cast(decoded[0,:,:,:,:], tf.uint8)
             tf.image_summary("video_seq", visualize, max_images=FLAGS.n_sub_frame)
