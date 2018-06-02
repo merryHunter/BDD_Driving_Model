@@ -10,7 +10,7 @@ FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
 FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
-FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-1000"
+FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-1000-commands"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'

@@ -131,8 +131,8 @@ tf.app.flags.DEFINE_float('ptrain_weight', 1.0,
 tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
-#"",
-"/home/chernuka/europilot/empirical/empirical_dist",
+"",
+#"/home/chernuka/europilot/empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -189,7 +189,7 @@ tf.app.flags.DEFINE_float('action_mapping_C', 100.0, '')
 
 
 FLAGS = tf.app.flags.FLAGS
-
+N_COMMANDS = 4 # Control signal, int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight)
 def convert_name(name, new_prefix):
     if not ("TrainStage" in name):
         return name
@@ -549,6 +549,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
             # logit[0] will be the discretized prediction
         else:
             raise ValueError("not valid sub_arch_selection")
+
 	branches = []
 
         for i in range(N_COMMANDS):
@@ -563,16 +564,15 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         return branches
 
-'''
-        logits = [slim.fully_connected(hidden_out,
-                                       num_classes,
-                                       scope=scope,
-                                       activation_fn=None,
-                                       normalizer_fn=None,
-                                       biases_initializer=tf.zeros_initializer)]
-'''
-        if FLAGS.city_data:
-            logits += [city_features]
+
+#        logits = [slim.fully_connected(hidden_out,
+#                                       num_classes,
+#                                       scope=scope,
+#                                       activation_fn=None,
+#                                       normalizer_fn=None,
+#                                       biases_initializer=tf.zeros_initializer)]
+    if FLAGS.city_data:
+        logits += [city_features]
 
     # TODO: call the prior if available.
     if FLAGS.prior_folder_path != '':
@@ -952,7 +952,71 @@ def call_label_to_dense_smooth(labels):
 
     return [course, speed]
 
+
+# BRANCHED
 def loss_car_loc_xy(logits, net_outputs, batch_size=None):
+    # net_outputs contains is_stop, turn, locs
+    future_labels = net_outputs[2]    # shape: N * F * 2
+    # reshape to 2 dimension
+    num_classes = future_labels.get_shape()[-1].value
+    NF = future_labels.get_shape()[0].value * \
+         future_labels.get_shape()[1].value
+    future_labels = tf.reshape(future_labels, [-1, num_classes])
+
+    dense_course, dense_speed = tf.py_func(call_label_to_dense_smooth,
+                              [future_labels],
+                              [tf.float32, tf.float32])
+
+    if FLAGS.class_balance_path!="":
+        path = FLAGS.class_balance_path + "_continuous.npy"
+        dists = np.load(path)
+
+        masks = []
+        dense_labels = [dense_course, dense_speed]
+        for i in range(2):
+            weights = util.loss_weights(dists[i], FLAGS.class_balance_epsilon)
+            print("using weighted training: ", weights)
+            # assume the label being the max response at that point
+            labels = tf.argmax(dense_labels[i], dimension=1)
+            mask = tf.gather(weights, labels)
+            mask.set_shape([NF])
+            masks.append(mask)
+    else:
+        masks = [1.0, 1.0]
+
+    n = FLAGS.discretize_n_bins
+
+    # TODO:
+    # iterate over logits
+    # set prediction according to control input at `net_outputs`
+    #
+    parts_1 = []
+    parts_2 = []
+    for i in range(len(logits)):
+        print("logits:{0}".format(i))
+ #       with tf.name_scope("Branch_" + str(i)):
+        future_predict = logits[i][0] # shape: (N*F) * 2Nbins
+        loss_1 = slim.losses.softmax_cross_entropy(future_predict[:, 0:n], dense_course,
+                                              scope="cross_entropy_loss/course_branch_" + str(i),
+                                              weight=tf.mul(masks[0],net_outputs[-1][i]))
+        loss_2 = slim.losses.softmax_cross_entropy(future_predict[:, n: ], dense_speed,
+                                              scope="cross_entropy_loss/speed_branch_" + str(i),
+                                              weight=tf.mul(masks[1],net_outputs[-1][i]))
+  #          parts_1.append(loss_1)
+   #         parts_2.append(loss_2)
+
+    # get mask in OHE format
+    # tf.Print(net_outputs[-1], [net_outputs[-1]])
+    # tf.Print(net_outputs[-1].get_shape())
+    # reduce sum over mask
+#    slim.losses.mean_squared_error(tf.mul(parts_1, net_outputs[-1]), tf.mul(parts_2, net_outputs[-1]))
+    # tf.reduce_sum()
+# ========
+
+
+
+
+def loss_car_loc_xy_original(logits, net_outputs, batch_size=None):
     # net_outputs contains is_stop, turn, locs
     future_labels = net_outputs[2]    # shape: N * F * 2
     # reshape to 2 dimension
