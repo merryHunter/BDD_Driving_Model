@@ -549,14 +549,28 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
             # logit[0] will be the discretized prediction
         else:
             raise ValueError("not valid sub_arch_selection")
+	branches = []
 
+        for i in range(N_COMMANDS):
+            with tf.name_scope("Branch_" + str(i)):
+                branch_output = [slim.fully_connected(hidden_out,
+                                               num_classes,
+                                               scope=scope + str(i),
+                                               activation_fn=None,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)]
+                branches.append(branch_output)
 
+        return branches
+
+'''
         logits = [slim.fully_connected(hidden_out,
                                        num_classes,
                                        scope=scope,
                                        activation_fn=None,
                                        normalizer_fn=None,
                                        biases_initializer=tf.zeros_initializer)]
+'''
         if FLAGS.city_data:
             logits += [city_features]
 

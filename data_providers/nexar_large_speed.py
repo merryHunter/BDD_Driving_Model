@@ -735,6 +735,7 @@ class MyDataset(Dataset):
                 'image/encoded': tf.VarLenFeature(dtype=tf.string),
                 'image/speeds': tf.VarLenFeature(dtype=tf.float32),
                 'image/class/video_name': tf.FixedLenFeature([1], dtype=tf.string, default_value=''),
+                 'image/command': tf.FixedLenFeature([], tf.int64),
         }
         if FLAGS.only_seg == 1:
             feature_map.update({'image/segmentation': tf.VarLenFeature(dtype=tf.string),
@@ -760,6 +761,8 @@ class MyDataset(Dataset):
             ctx.set_shape([len_downsampled])
 
         name = features['image/class/video_name']
+	command = tf.cast(features['image/command'], tf.int32)
+	print("Command:{0}".format(command))
 
         encoded = features['image/encoded'].values[:FLAGS.FRAMES_IN_SEG]
         encoded_sub = encoded[tstart::FLAGS.temporal_downsample_factor]
@@ -851,7 +854,7 @@ class MyDataset(Dataset):
         name = tf.tile(name, [batched[0].get_shape()[0].value])
 
         ins = batched[0:2] + [name]
-        outs = batched[2:5]
+        outs = batched[2:5]  + [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
         if FLAGS.city_data:
             # city batch means how many batch does each video sequence forms
             FLAGS.city_batch = len_downsampled // FLAGS.n_sub_frame
