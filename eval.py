@@ -208,8 +208,9 @@ def plot_confusion_matrix(cm, classes,
   plt.xlabel('Predicted label')
 
 
-def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensors_in, summary_writer):
-  logits = tf.nn.softmax(logits_all[0])
+def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, tensors_in, summary_writer):
+#  control_branch = labels_in[-1]
+#  logits = tf.nn.softmax(logits_all[control_branch][0])
   labels = labels_in[1] # since the second entry is the turn label
   nclass = labels.get_shape()[-1].value
   labels = tf.reshape(labels, [-1, nclass])
@@ -235,7 +236,7 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
                                             19,
                                             weights=weight)
 
-  real_loss = tf.nn.softmax_cross_entropy_with_logits(logits_all[0], labels)
+  real_loss = tf.nn.softmax_cross_entropy_with_logits(logits_all_param[0], labels)
   real_loss = tf.reduce_mean(real_loss)
 
   total_loss = 0.0
@@ -257,12 +258,40 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
   num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
   print(FLAGS.batch_size)
   print(FLAGS.num_examples)
+  num_iter = 6
   for step in range(num_iter):
     t0 = time.time()
     if coord.should_stop():
       print("coord thinks we should exit, at step: ", step)
       break
-    if FLAGS.output_visualizations:
+    if True: #FLAGS.output_visualizations:
+      b = labels_in[-1][0][0]
+      b = tf.reshape(b ,[])
+      def f0(): return logits_all_param[3][0]
+      def f1(): return logits_all_param[3][0]
+      def f2(): return logits_all_param[3][0]
+      def f3(): return logits_all_param[3][0]
+      const_0 =  tf.constant(0.0)
+      cond_l = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
+                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
+ #                     },
+                      default=f3, exclusive=True)
+      #logits = tf.Print(logits, [cond_l])
+      #print(cond_l.get_shape())
+      cond_l = tf.reshape(cond_l, [108,6])
+      cond_l = tf.Print(cond_l,[b])
+      print(cond_l.get_shape())
+
+
+      print("CONTROL:")
+#      control = tf.constant([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+#      control_arr = sess.run([control])
+#      print(control_arr[0])
+#      control = np.argmax(control_arr) # sess.run([tf.argmax(control,0)])
+#      print(control)
+#      loss_v, labels_v, logits_v, tin_out_v = sess.run([loss_op, labels, logits[control][0], tensors_in + labels_in])
+      logits = tf.nn.softmax(cond_l)
+      
       real_loss_v, loss_v, labels_v, logits_v, tin_out_v = \
           sess.run([real_loss, loss_op, labels, logits, tensors_in+labels_in])
       if FLAGS.use_simplifed_continuous_vis:
@@ -271,14 +300,15 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
         vis_func = util_car.vis_discrete
 
       for isample in range(FLAGS.batch_size):
-        vis_func(tin_out_v,
-                              logits_v,
-                              FLAGS.frame_rate/FLAGS.temporal_downsample_factor,
-                              isample,
-                              True,
-                              os.path.join(FLAGS.eval_dir, FLAGS.eval_viz_id),
+#        vis_func(tin_out_v,
+#                              logits_v,
+#                              FLAGS.frame_rate/FLAGS.temporal_downsample_factor,
+#                              isample,
+#                              True,
+#                              os.path.join(FLAGS.eval_dir, FLAGS.eval_viz_id),
 #                              string_type='image')
-			)
+#			)
+        pass
       tin_out_v_2 = tin_out_v[2]
     else:
       if FLAGS.city_data:
@@ -287,6 +317,7 @@ def car_discrete(logits_all, labels_in, loss_op, sess, coord, summary_op, tensor
       else:
         real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2 = \
             sess.run([real_loss, loss_op, labels, logits, tensors_in[2]])
+    print(logits_v[:5])
     logits_all = np.concatenate((logits_all, logits_v), axis=0)
     labels_all = np.concatenate((labels_all, labels_v), axis=0)
     total_loss = total_loss + loss_v[0]
@@ -473,6 +504,7 @@ def evaluate():
     # Build a Graph that computes the logits predictions from the
     # inference model.
     logits_all = model.inference(tensors_in, num_classes, for_training=False)
+    print(logits_all)
     model.loss(logits_all, tensors_out, batch_size=FLAGS.batch_size)
     loss_op = slim.losses.get_losses()
 

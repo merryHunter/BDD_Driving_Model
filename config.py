@@ -221,12 +221,12 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 3000
+    FLAGS.max_steps = 30000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
     FLAGS.num_epochs_per_decay = 4
-    FLAGS.initial_learning_rate = 1e-4
+    FLAGS.initial_learning_rate = 5e-3
     FLAGS.learning_rate_decay_factor = 0.5
 
     # NN architecture related

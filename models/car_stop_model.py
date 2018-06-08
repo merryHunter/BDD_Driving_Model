@@ -17,7 +17,7 @@ from collections import defaultdict
 import models.BasicConvLSTMCell as BasicConvLSTMCell
 import os
 from scipy.ndimage import gaussian_filter
-
+import random
 # base CNNs
 from models.kaffe.caffenet import CaffeNet
 #from models.kaffe.caffenet_dilation import CaffeNet_dilation
@@ -131,8 +131,8 @@ tf.app.flags.DEFINE_float('ptrain_weight', 1.0,
 tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
-"",
-#"/home/chernuka/europilot/empirical/empirical_dist",
+#"",
+"/home/chernuka/europilot/empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -186,6 +186,8 @@ tf.app.flags.DEFINE_float('action_mapping_main_weight', 1.0,
 tf.app.flags.DEFINE_float('action_mapping_threshold', 0.05,
                            'C * max(thresh, |dist1-dist2|)')
 tf.app.flags.DEFINE_float('action_mapping_C', 100.0, '')
+tf.app.flags.DEFINE_float('n_hidden_units_branch', 128,
+                           'Number of hidden units in fully connected layer for each branch')
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -562,8 +564,8 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                                                biases_initializer=tf.zeros_initializer)]
                 branches.append(branch_output)
 
-        return branches
-
+        return tf.convert_to_tensor(branches, name="my_branches")
+#        return branches
 
 #        logits = [slim.fully_connected(hidden_out,
 #                                       num_classes,
@@ -745,7 +747,7 @@ def loss_car_stop(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
     slim.losses.softmax_cross_entropy(prediction, dense_labels, weight = mask)
 
-def loss_car_discrete(logits, net_outputs, batch_size=None):
+def loss_car_discrete_original(logits, net_outputs, batch_size=None):
     # net_outputs contains is_stop, turn
     dense_labels = net_outputs[1]    # shape: N * F * nclass
     # reshape to 2 dimension
@@ -765,6 +767,73 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
 
     # Cross entropy loss for the main softmax prediction.
     slim.losses.softmax_cross_entropy(logits[0], dense_labels, weight=mask)
+
+
+def loss_car_discrete(logits, net_outputs, batch_size=None):
+    # net_outputs contains is_stop, turn
+    dense_labels = net_outputs[1]    # shape: N * F * nclass
+    # reshape to 2 dimension
+    num_classes = dense_labels.get_shape()[-1].value
+    dense_labels = tf.reshape(dense_labels, [-1, num_classes])
+    
+    if FLAGS.class_balance_path!="":
+        path = FLAGS.class_balance_path + "_discrete.npy"
+        empirical_distribution = np.load(path)
+        weights = util.loss_weights(empirical_distribution, FLAGS.class_balance_epsilon)
+        print("using weighted training: ", weights)
+        # assume the label being the max response at that point
+        labels = tf.argmax(dense_labels, dimension=1)
+        mask = tf.gather(weights, labels)
+    else:
+        mask = 1.0
+
+    parts = []
+    with tf.variable_scope("branch_loss"):
+#        scope.reuse_variables()
+        acc = tf.get_variable(name="acc", shape=logits[0][0].get_shape(), initializer=tf.constant_initializer(0.0))
+#    acc = tf.Variable(tf.zeros(logits[0][0].get_shape()),name="acc")
+        acc = tf.mul(acc, tf.constant(0.0))
+#        acc = tf.Print(acc,[acc], message="init acc")
+    print(logits)
+    branch_mask = net_outputs[-1][0][0]
+    '''
+    for i in range(4):
+        print("logits:{0}".format(i))
+        with tf.name_scope("Branch_" + str(i)):
+            if tf.assert_equal(branch_mask, tf.constant(i, dtype=tf.int32)):
+                future_predict = logits[i][0]
+                future_predict = tf.Print(future_predict, [future_predict, branch_mask, tf.constant(i, dtype=tf.int32)])  
+    '''
+#            m = tf.mul(future_predict, l)
+#            m = tf.Print(m,[m])
+#            acc = tf.add(acc, m)
+#            acc = tf.Print(acc,[acc])
+
+    b = net_outputs[-1][0]
+    b = tf.reshape(b ,[])
+    print(b)
+#    logits = logits[branch]
+#    logits = tf.Print(logits, [logits])
+#    b = tf.constant([0])
+#    print(b)
+    # Cross entropy loss for the main softmax prediction.
+    eq_ = tf.equal(b, tf.constant(0))
+#    logits = tf.Print(logits,[b, eq_])
+    def f0(): return logits[0][0]
+    def f1(): return logits[1][0]
+    def f2(): return logits[2][0]
+    def f3(): return logits[3][0]
+    const_0 =  tf.constant(0.0)
+    cond_l = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
+                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
+ #                     },
+                      default=f3, exclusive=True) 
+    logits = tf.Print(logits, [cond_l])
+    print(cond_l.get_shape())
+    cond_l = tf.reshape(cond_l, [108,6])
+    print(cond_l.get_shape())
+    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=mask)
+
 
 ##################### Loss Functions of the continous discritized #########
 # helper function
@@ -1201,8 +1270,12 @@ def loss(logits, net_outputs, batch_size=None):
         loss2joint(logits, net_outputs)
         return
 
+#    myl = []
+#    for l in logits:
+#        myl.append(l[0:1])
+    print("loss call")
     func = globals()["loss_%s" % FLAGS.sub_arch_selection]
-    func(logits[0:1], net_outputs, batch_size)
+    func(logits, net_outputs, batch_size)
     
 
 ####################pdf of continous distribution #######################

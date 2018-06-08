@@ -24,7 +24,7 @@ def probe_file(filename):
 
 if __name__ == '__main__':
     dataset_path = sys.argv[1]
-    output_index =  "video_filtered_38_60.txt"
+    output_index =  "02_video_filtered_38_60.txt"
 
     info_path = os.path.join(dataset_path, "info")
     video_path = os.path.join(dataset_path, "videos")

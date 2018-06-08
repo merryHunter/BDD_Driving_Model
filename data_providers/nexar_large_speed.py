@@ -762,7 +762,8 @@ class MyDataset(Dataset):
 
         name = features['image/class/video_name']
 	command = tf.cast(features['image/command'], tf.int32)
-	print("Command:{0}".format(command))
+#        command = tf.Print(command, [name])
+#	print("Command:{0}".format(command))
 
         encoded = features['image/encoded'].values[:FLAGS.FRAMES_IN_SEG]
         encoded_sub = encoded[tstart::FLAGS.temporal_downsample_factor]
@@ -854,7 +855,14 @@ class MyDataset(Dataset):
         name = tf.tile(name, [batched[0].get_shape()[0].value])
 
         ins = batched[0:2] + [name]
-        outs = batched[2:5]  + [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
+        cc = [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
+#        cprint = tf.Print(cc,[cc])
+        print(cc)
+        cc = tf.mod(command, 4)
+        print(command)
+        print(batched[2:5])
+
+        outs = batched[2:5]  + [tf.reshape(tf.mod(command,4),[1,-1])] # [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
         if FLAGS.city_data:
             # city batch means how many batch does each video sequence forms
             FLAGS.city_batch = len_downsampled // FLAGS.n_sub_frame

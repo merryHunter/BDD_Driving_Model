@@ -95,7 +95,7 @@ tf.app.flags.DEFINE_integer('checkpoint_interval', 5000,
 
 tf.app.flags.DEFINE_string('EWC', 'off',
                            '''Elastic Weight Consolidation method status: off, stat, apply''')
-
+sess = None
 def _tower_loss(inputs, outputs, num_classes, scope):
   # inputs and outputs are two lists of tensors
 
@@ -253,7 +253,7 @@ def train():
                                     decay_steps,
                                     FLAGS.learning_rate_decay_factor,
                                     staircase=True)
-
+    print(lr)
     # Create an optimizer that performs gradient descent.
     if FLAGS.optimizer == "rmsprop":
       opt = tf.train.RMSPropOptimizer(lr, decay=RMSPROP_DECAY,
@@ -467,7 +467,7 @@ def train():
                 log_device_placement=FLAGS.log_device_placement,
                 intra_op_parallelism_threads=1)
     config.gpu_options.allow_growth = True
-
+    config.gpu_options.per_process_gpu_memory_fraction = 0.45 
     sess = tf.Session(config=config)
     sess.run(init)
 

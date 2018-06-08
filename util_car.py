@@ -62,9 +62,9 @@ def images2video(images, frame_rate,
     print("writing images")
     for i in range(shape[0]):
         j = Image.fromarray(images[i, :, :, :])
-        if i % 5 == 0 :
-            j.save("%05d.jpeg" % my_count, "jpeg", quality=93)
-            my_count += 1
+#        if i % 5 == 0 :
+        j.save("%05d.jpeg" % my_count, "jpeg", quality=93)
+        my_count += 1
 #        break
     print("converting to video")
     video_name = name+'.mp4'
