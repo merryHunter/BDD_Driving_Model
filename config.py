@@ -10,7 +10,7 @@ FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
 FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
-FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-1000-commands"
+FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-large-commands"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'
@@ -226,7 +226,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
     FLAGS.num_epochs_per_decay = 4
-    FLAGS.initial_learning_rate = 5e-3
+    FLAGS.initial_learning_rate = 5e-4
     FLAGS.learning_rate_decay_factor = 0.5
 
     # NN architecture related

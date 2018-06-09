@@ -556,7 +556,13 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
-                branch_output = [slim.fully_connected(hidden_out,
+                b = [slim.fully_connected(hidden_out,
+                                               128,
+                                               scope=scope +"hidden"+ str(i),
+                                               activation_fn=None,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)]
+                branch_output = [slim.fully_connected(b,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
