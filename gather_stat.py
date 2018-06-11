@@ -59,7 +59,7 @@ def stat_labels(labels_in, sess, coord, tensors_in):
         dense_course, dense_speed = tf.py_func(model.call_label_to_dense_smooth,
                                                [future_labels],
                                                [tf.float32, tf.float32])
-
+    b = labels_in[-1]
     # TODO get the joint stat
 
     stop_acc = np.array([0, 0])
@@ -73,14 +73,20 @@ def stat_labels(labels_in, sess, coord, tensors_in):
 
     print('%s: starting getting statistics on (%s).' % (datetime.now(), FLAGS.subset))
     start_time = time.time()
+    print(FLAGS.num_examples)
     num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
+    print(num_iter)
     for step in range(num_iter):
         if coord.should_stop():
             break
 
         if not FLAGS.stat_datadriven_only:
-            discrete_v, dc, ds, labels_stop_v, future_labels_v = \
-                sess.run([discrete_labels, dense_course, dense_speed, labels_stop,future_labels])
+            discrete_v, dc, ds, labels_stop_v, future_labels_v, b_v = \
+                sess.run([discrete_labels, dense_course, dense_speed, labels_stop,future_labels, b])
+            if b_v[0] != 3:
+                print(b_v[0])
+                continue
+
             dc = np.mean(dc, axis=0)
             ds = np.mean(ds, axis=0)
         else:
@@ -88,7 +94,7 @@ def stat_labels(labels_in, sess, coord, tensors_in):
                 sess.run([discrete_labels, labels_stop, future_labels])
         discrete_v = np.mean(discrete_v, axis=0)
 
-        if step == 0:
+        if count == 0:
             discrete_acc = discrete_v
             if not FLAGS.stat_datadriven_only:
                 course_acc = dc
@@ -133,7 +139,7 @@ def stat_labels(labels_in, sess, coord, tensors_in):
 def evaluate():
     dataset = dataset_module.MyDataset(subset=FLAGS.subset)
     assert dataset.data_files()
-    FLAGS.num_examples = dataset.num_examples_per_epoch() / FLAGS.subsample_factor
+    FLAGS.num_examples = dataset.num_examples_per_epoch() #/ FLAGS.subsample_factor
 
     output_dir = os.path.dirname(FLAGS.stat_output_path)
     if not tf.gfile.Exists(output_dir):
