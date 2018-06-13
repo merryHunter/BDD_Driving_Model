@@ -336,6 +336,8 @@ def train():
                             
                         if (v in multiplier) and (abs(multiplier[v]) < 1e-6):
                             pass
+                        if "TrainStage1" not in v:
+                            pass
                         else:
                             grad_var_list.append(t)
                     print("-"*40 + "\n gradient will be computed for vars:")

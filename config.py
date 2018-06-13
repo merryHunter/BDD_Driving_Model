@@ -364,7 +364,7 @@ def common_config(phase):
     FLAGS.pretrained_model_checkpoint_path = ""
     FLAGS.num_preprocess_threads = 4
     FLAGS.display_loss = 10
-    FLAGS.display_summary = 100
+    FLAGS.display_summary = 10
     FLAGS.checkpoint_interval = 500
     FLAGS.input_queue_memory_factor = 8
     FLAGS.examples_per_shard=1

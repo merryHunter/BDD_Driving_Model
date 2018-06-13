@@ -131,9 +131,9 @@ tf.app.flags.DEFINE_float('ptrain_weight', 1.0,
 tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
-#"",
+"",
 #"/home/chernuka/europilot/my/BDD_Driving_Model/empirical_branched/empirical_dist",
-"/home/chernuka/europilot/empirical/empirical_dist",
+#"/home/chernuka/europilot/empirical/empirical_dist",
 #"/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
@@ -563,6 +563,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 #                                               activation_fn=None,
 #                                               normalizer_fn=None,
 #                                               biases_initializer=tf.zeros_initializer)
+                
                 branch_output = [slim.fully_connected(hidden_out,
                                                num_classes,
                                                scope=scope + str(i),
@@ -809,24 +810,49 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
         print(mask0)
     else:
         mask = 1.0
+    from tensorflow.python.framework import ops
+    from tensorflow.python.ops import math_ops
+    def get_softmax(logits, onehot_labels, scope):
+        with ops.name_scope(scope, "softmax_cross_entropy_loss",
+                        [logits, onehot_labels]):
+            logits.get_shape().assert_is_compatible_with(onehot_labels.get_shape())
+            onehot_labels = math_ops.cast(onehot_labels, logits.dtype)
+            losses = tf.nn.softmax_cross_entropy_with_logits(logits, onehot_labels,
+                                                  name="xentropy")
+            return losses   
 
     parts = []
-    with tf.variable_scope("branch_loss"):
+#    with tf.variable_scope("branch_loss"):
 #        scope.reuse_variables()
-        acc = tf.get_variable(name="acc", shape=logits[0][0].get_shape(), initializer=tf.constant_initializer(0.0))
-#    acc = tf.Variable(tf.zeros(logits[0][0].get_shape()),name="acc")
-        acc = tf.mul(acc, tf.constant(0.0))
+#        acc = tf.get_variable(name="acc", shape=logits[0][0].get_shape(), initializer=tf.constant_initializer(0.0))
+#        acc = tf.Variable(tf.zeros(logits[0][0].get_shape()),name="acc")
+#        acc = tf.mul(acc, tf.constant(0.0))
 #        acc = tf.Print(acc,[acc], message="init acc")
     print(logits)
     branch_mask = net_outputs[-1][0][0]
-    '''
+    branch_mask = tf.one_hot(branch_mask, 4) # command control, 4 commands
+    branch_mask = tf.reshape(branch_mask, [4,1])
+#    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
+#    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
+#    branch_mask = tf.reshape(branch_mask, [4,1])
+#    ranch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
+#    masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
     for i in range(4):
         print("logits:{0}".format(i))
-        with tf.name_scope("Branch_" + str(i)):
-            if tf.assert_equal(branch_mask, tf.constant(i, dtype=tf.int32)):
-                future_predict = logits[i][0]
-                future_predict = tf.Print(future_predict, [future_predict, branch_mask, tf.constant(i, dtype=tf.int32)])  
-    '''
+#        with tf.name_scope("Branch_" + str(i)):
+        part = get_softmax(logits[i][0], dense_labels, "loss_" + str(i))
+        parts.append(part)
+    
+    loss_parts = tf.convert_to_tensor(parts)
+    print(loss_parts)
+    print(branch_mask)
+    branch_loss = tf.reduce_sum(tf.mul(loss_parts, branch_mask), name="branch_reduce_sum")
+    slim.losses.add_loss(branch_loss)
+    
+            #if tf.assert_equal(branch_mask, tf.constant(i, dtype=tf.int32)):
+            #    future_predict = logits[i][0]
+            #    future_predict = tf.Print(future_predict, [future_predict, branch_mask, tf.constant(i, dtype=tf.int32)])  
+    
 #            m = tf.mul(future_predict, l)
 #            m = tf.Print(m,[m])
 #            acc = tf.add(acc, m)
@@ -842,21 +868,29 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
 #    eq_ = tf.equal(b, tf.constant(0))
 #    logits = tf.Print(logits,[b, eq_])
-    def f0(): return logits[0][0], mask0
-    def f1(): return logits[1][0], mask1
-    def f2(): return logits[2][0], mask2
-    def f3(): return logits[3][0], mask3
+#    def f0(): return logits[0][0], mask0, "loss_b1"
+#    def f1(): return logits[1][0], mask1, "loss_b2"
+#    def f2(): return logits[2][0], mask2, "loss_b3" 
+#    def f3(): return logits[3][0], mask3, "loss_b4"
 
-    b =  tf.constant(0)
-    cond_l, cond_m = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
-                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
-                      default=f3, exclusive=True)
+#    def f0(): return slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask0, scope="loss_b0")
+#    def f1(): return slim.losses.softmax_cross_entropy(logits[1][0], dense_labels, weight=mask1, scope="loss_b1")
+#    def f2(): return slim.losses.softmax_cross_entropy(logits[2][0], dense_labels, weight=mask2, scope="loss_b2")
+#    def f3(): return slim.losses.softmax_cross_entropy(logits[3][0], dense_labels, weight=mask3, scope="loss_b3")
+
+#    b =  tf.constant(0)
+#    cond_l = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
+#                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
+#                      default=f3, exclusive=True)
 #    logits = tf.Print(logits, [cond_l])
-    print(cond_l.get_shape())
-    cond_l = tf.reshape(cond_l, [108,6])
-    cond_m = tf.reshape(cond_m, [108])
-    print(cond_l.get_shape())
-    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m)
+#    print(cond_l.get_shape())
+#    cond_l = tf.reshape(cond_l, [108,6])
+#    cond_m = tf.reshape(cond_m, [108])
+#    print(cond_l.get_shape())
+#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b0")
+#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b1")
+#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b2")
+#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b3")
 
 
 ##################### Loss Functions of the continous discritized #########

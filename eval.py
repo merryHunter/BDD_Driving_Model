@@ -282,7 +282,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
           sess.run([real_loss, loss_op, labels, logits_run, tensors_in+labels_in])
       branch = int(tin_out_v[-1][0][0])
       name = tin_out_v[2]
-      print("branch:{0}:: {1}".format(branch,name))
+#      print("branch:{0}:: {1}".format(branch,name))
 #      print(weight0)
       if FLAGS.use_simplifed_continuous_vis:
         vis_func = util_car.vis_discrete_colormap_antialias
@@ -311,7 +311,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
 #    if branch != 2:
 #      continue
     num_iter += 1
-    print(logits_v[branch][0][:5])
+#    print(logits_v[branch][0][:5])
 #    print(logits_v.shape)
     logits_all = np.concatenate((logits_all, logits_v[branch][0]), axis=0)
     labels_all = np.concatenate((labels_all, labels_v), axis=0)
@@ -343,7 +343,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
   pred1  = np.argmax(logits_all, axis=1)
   with open(os.path.join(FLAGS.eval_dir,'seg.pickle'),'w') as f:
       pickle.dump(save_loss, f)
-
+  print("before accuracy")
   accuracy = accuracy_score(label1, pred1)
   # each class's L1 diff average
   int2str = dataset_module.MyDataset.turn_int2str

@@ -855,7 +855,7 @@ class MyDataset(Dataset):
 
         name = tf.tile(name, [batched[0].get_shape()[0].value])
 
-        ins = batched[0:2] + [name]
+        ins = batched[0:2] + [name] + [tf.reshape(tf.mod(command,4),[1,-1])]
 #        cc = [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
 
         outs = batched[2:5]  + [tf.reshape(tf.mod(command,4),[1,-1])] # [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
