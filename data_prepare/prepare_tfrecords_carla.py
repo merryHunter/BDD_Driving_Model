@@ -136,12 +136,14 @@ def read_one_video(video_path, jobid):
     ratio = False
 
     # save the speed field
-    json_path = os.path.join("/unreliable/DATASETS/carla/train-00-info-carla/", fprefix+".json")
+    json_path = os.path.join("/unreliable/DATASETS/carla/train-02-info-carla/", fprefix+".json")
     speeds = get_interpolated_speed(json_path, fprefix+".mov", hz_res)
     print('before')
-    command = get_command(json_path)
-    print(command)
-
+    try:
+        command = get_command(json_path)
+        print(command)
+    except:
+        return 0, False
     sys.stdout.flush()
     if speeds is None:
         # if speed is none, the error message is printed in other functions

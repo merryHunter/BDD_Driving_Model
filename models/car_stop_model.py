@@ -132,8 +132,9 @@ tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
 #"",
-"/home/chernuka/europilot/my/BDD_Driving_Model/empirical_branched/empirical_dist",
-#"/home/chernuka/europilot/empirical/empirical_dist",
+#"/home/chernuka/europilot/my/BDD_Driving_Model/empirical_branched/empirical_dist",
+"/home/chernuka/europilot/empirical/empirical_dist",
+#"/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -399,7 +400,6 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                           mode='CONSTANT',
                           name="pad_speed")
             speed = speed[:, :-shift_amount, :]
-
             normalize_exceptions.append(len(all_features))
             all_features.append(speed)
 
@@ -557,13 +557,13 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
-                b = slim.fully_connected(hidden_out,
-                                               128,
-                                               scope=scope +"hidden"+ str(i),
-                                               activation_fn=None,
-                                               normalizer_fn=None,
-                                               biases_initializer=tf.zeros_initializer)
-                branch_output = [slim.fully_connected(b,
+#                b = slim.fully_connected(hidden_out,
+#                                               256,
+#                                               scope=scope +"hidden"+ str(i),
+#                                               activation_fn=None,
+#                                               normalizer_fn=None,
+#                                               biases_initializer=tf.zeros_initializer)
+                branch_output = [slim.fully_connected(hidden_out,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
@@ -784,10 +784,10 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     dense_labels = tf.reshape(dense_labels, [-1, num_classes])
     
     if FLAGS.class_balance_path!="":
-        path0 = FLAGS.class_balance_path + "_discrete0.npy"
-        path1 = FLAGS.class_balance_path + "_discrete1.npy"
-        path2 = FLAGS.class_balance_path + "_discrete2.npy"
-        path3 = FLAGS.class_balance_path + "_discrete3.npy"
+        path0 = FLAGS.class_balance_path + "_discrete.npy"
+        path1 = FLAGS.class_balance_path + "_discrete.npy"
+        path2 = FLAGS.class_balance_path + "_discrete.npy"
+        path3 = FLAGS.class_balance_path + "_discrete.npy"
         empirical_distribution0 = np.load(path0)
         empirical_distribution1 = np.load(path1)
         empirical_distribution2 = np.load(path2)
@@ -832,26 +832,22 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
 #            acc = tf.add(acc, m)
 #            acc = tf.Print(acc,[acc])
 
-    b = net_outputs[-1][0]
-    b = tf.reshape(b ,[])
-    print(b)
+#    b = net_outputs[-1][0]
+#    b = tf.reshape(b ,[])
+#    print(b)
 #    logits = logits[branch]
 #    logits = tf.Print(logits, [logits])
 #    b = tf.constant([0])
 #    print(b)
     # Cross entropy loss for the main softmax prediction.
-    eq_ = tf.equal(b, tf.constant(0))
+#    eq_ = tf.equal(b, tf.constant(0))
 #    logits = tf.Print(logits,[b, eq_])
     def f0(): return logits[0][0], mask0
     def f1(): return logits[1][0], mask1
     def f2(): return logits[2][0], mask2
     def f3(): return logits[3][0], mask3
 
-    def m0(): return mask0
-    def m1(): return mask1
-    def m2(): return mask2
-    def m3(): return mask3
-    const_0 =  tf.constant(0.0)
+    b =  tf.constant(0)
     cond_l, cond_m = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
                       tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
                       default=f3, exclusive=True)

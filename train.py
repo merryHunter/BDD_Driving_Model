@@ -133,7 +133,7 @@ def _tower_loss(inputs, outputs, num_classes, scope):
   # Assemble all of the losses for the current tower only.
   #losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
   losses = slim.losses.get_losses(scope)
-
+  print("Losses:{0},scope:{1}".format(losses,scope))
   # Calculate the total loss for the current tower.
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
 
@@ -153,7 +153,7 @@ def _tower_loss(inputs, outputs, num_classes, scope):
     # as the original loss name.
     tf.scalar_summary(loss_name +' (raw)', l)
     tf.scalar_summary(loss_name +' (ave)', loss_averages.average(l))
-
+    print(loss_name)
   with tf.control_dependencies([loss_averages_op]):
     total_loss = tf.identity(total_loss)
   return total_loss
@@ -331,6 +331,9 @@ def train():
                     grad_var_list = []
                     for t in tf.trainable_variables():
                         v = t.op.name
+                        if v == "TrainStage1_discrete_fcn_lstm/softmax_linear_car_discrete0/weights":
+                            print("TrainStage1_discrete_fcn_lstm/softmax_linear_car_discrete0/weights")
+                            
                         if (v in multiplier) and (abs(multiplier[v]) < 1e-6):
                             pass
                         else:
@@ -439,7 +442,7 @@ def train():
                         batchnorm_updates_op)
 
     # Create a saver.
-    saver = tf.train.Saver(tf.all_variables())
+    saver = tf.train.Saver(tf.all_variables(),max_to_keep=100)
 
     # Build the summary operation from the last tower summaries.
     summary_op = tf.merge_summary(summaries)

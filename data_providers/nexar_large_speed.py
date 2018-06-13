@@ -132,7 +132,7 @@ class MyDataset(Dataset):
 #       Don't put actual number of training files! Due to unknown reasons, if you do that model 
 #	accuracy drops to 0.09!!!!
 #            return 1000 ---> don't do this!!
-#            return 3514
+#            return 3941
             if FLAGS.retain_first_k_training_example > 0:
                 return FLAGS.retain_first_k_training_example
 
@@ -856,12 +856,7 @@ class MyDataset(Dataset):
         name = tf.tile(name, [batched[0].get_shape()[0].value])
 
         ins = batched[0:2] + [name]
-        cc = [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
-#        cprint = tf.Print(cc,[cc])
-        print(cc)
-        cc = tf.mod(command, 4)
-        print(command)
-        print(batched[2:5])
+#        cc = [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
 
         outs = batched[2:5]  + [tf.reshape(tf.mod(command,4),[1,-1])] # [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
         if FLAGS.city_data:

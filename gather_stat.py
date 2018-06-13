@@ -84,7 +84,7 @@ def stat_labels(labels_in, sess, coord, tensors_in):
             discrete_v, dc, ds, labels_stop_v, future_labels_v, b_v = \
                 sess.run([discrete_labels, dense_course, dense_speed, labels_stop,future_labels, b])
             if b_v[0] != 3:
-                print(b_v[0])
+#                print(b_v[0])
                 continue
 
             dc = np.mean(dc, axis=0)

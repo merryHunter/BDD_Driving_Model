@@ -4,9 +4,11 @@ import numpy as np
 import math
 
 def read_json(json_path, video_filename):
-    with open(json_path) as data_file:    
-        seg = json.load(data_file)
-
+    try:
+        with open(json_path) as data_file:    
+            seg = json.load(data_file)
+    except: 
+        return None
     locs = seg['locations']
     loc2nparray = lambda locs, key: np.array([x[key] for x in locs]).ravel()
     res = {}
