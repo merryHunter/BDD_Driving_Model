@@ -361,6 +361,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
     print("-"*40, stage_status)
     with tf.variable_scope(stage_status):
+        tf.set_random_seed(42)
         all_features = []
 
         # the indices that don't wish to be normalized
@@ -558,7 +559,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
 #                b = slim.fully_connected(hidden_out,
-#                                               256,
+#                                               16,
 #                                               scope=scope +"hidden"+ str(i),
 #                                               activation_fn=None,
 #                                               normalizer_fn=None,
@@ -776,6 +777,95 @@ def loss_car_discrete_original(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
     slim.losses.softmax_cross_entropy(logits[0], dense_labels, weight=mask)
 
+def loss_car_discrete_v7(logits, net_outputs, batch_size=None):
+    # net_outputs contains is_stop, turn
+    dense_labels = net_outputs[1]    # shape: N * F * nclass
+    # reshape to 2 dimension
+    num_classes = dense_labels.get_shape()[-1].value
+    dense_labels = tf.reshape(dense_labels, [-1, num_classes])
+
+    if FLAGS.class_balance_path!="":
+        path = FLAGS.class_balance_path + "_discrete.npy"
+        empirical_distribution = np.load(path)
+        weights = util.loss_weights(empirical_distribution, FLAGS.class_balance_epsilon)
+        print("using weighted training: ", weights)
+        # assume the label being the max response at that point
+        labels = tf.argmax(dense_labels, dimension=1)
+        mask = tf.gather(weights, labels)
+    else:
+        mask = 1.0
+
+    # Cross entropy loss for the main softmax prediction.
+    slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask,scope="loss0")
+    slim.losses.softmax_cross_entropy(logits[1][0], dense_labels, weight=mask,scope="loss1")
+    slim.losses.softmax_cross_entropy(logits[2][0], dense_labels, weight=mask,scope="loss2")
+    slim.losses.softmax_cross_entropy(logits[3][0], dense_labels, weight=mask,scope="loss3") 
+
+def loss_car_discrete_v5(logits, net_outputs, batch_size=None):
+    # net_outputs contains is_stop, turn
+    dense_labels = net_outputs[1]    # shape: N * F * nclass
+    # reshape to 2 dimension
+    num_classes = dense_labels.get_shape()[-1].value
+    dense_labels = tf.reshape(dense_labels, [-1, num_classes])
+
+    if FLAGS.class_balance_path!="":
+        path = FLAGS.class_balance_path + "_discrete.npy"
+        empirical_distribution = np.load(path)
+        weights = util.loss_weights(empirical_distribution, FLAGS.class_balance_epsilon)
+        print("using weighted training: ", weights)
+        # assume the label being the max response at that point
+        labels = tf.argmax(dense_labels, dimension=1)
+        mask = tf.gather(weights, labels)
+    else:
+        mask = 1.0
+#    b = net_outputs[-1][0][0]
+#    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
+#    branch_mask = tf.reshape(branch_mask, [4,1])
+    b = tf.constant(0)
+    print(logits)
+    # tf case disable gradients
+    def f0(logits_p):
+        l_tmp = []
+        l_tmp.append(logits_p[0])
+        l_tmp.append(tf.stop_gradient(logits_p[1]))
+        l_tmp.append(tf.stop_gradient(logits_p[2]))
+        l_tmp.append(tf.stop_gradient(logits_p[3]))
+        logit = tf.convert_to_tensor(l_tmp)
+        return logit
+    def f1(logits_p):
+        tf.stop_gradient(logits_p[0])
+        tf.stop_gradient(logits_p[2])
+        tf.stop_gradient(logits_p[3])
+        return logits_p[1]
+    def f2():
+        tf.stop_gradient(logits[0])
+        tf.stop_gradient(logits[1])
+        tf.stop_gradient(logits[3])
+        return logits[2]
+    def f3():
+        tf.stop_gradient(logits[0])
+        tf.stop_gradient(logits[1])
+        tf.stop_gradient(logits[2])
+        return logits[3]
+
+    log_cond = tf.case(pred_fn_pairs=[
+              (tf.equal(b, tf.constant(0)), lambda : f0(logits)),
+              (tf.equal(b, tf.constant(1)), lambda : f1(logits))],
+               default=lambda: f0(logits), exclusive=False)
+
+#tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f0,
+#                        tf.equal(b, tf.constant(0)): f2, tf.equal(b, tf.constant(3)): f0},
+ #              default=f3, exclusive=False)    
+    log_cond = tf.reshape(log_cond, [4, 108,6])
+    # softmax xe
+    parts = []
+    with tf.control_dependencies([log_cond]):
+        slim.losses.softmax_cross_entropy(log_cond[0], dense_labels, weight=mask)
+        x_test = tf.stop_gradient(log_cond[1])
+        slim.losses.softmax_cross_entropy(x_test, dense_labels, weight=mask)
+
+    # Cross entropy loss for the main softmax prediction.
+#    slim.losses.softmax_cross_entropy(logits[0], dense_labels, weight=mask)
 
 def loss_car_discrete(logits, net_outputs, batch_size=None):
     # net_outputs contains is_stop, turn
@@ -819,6 +909,8 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
             onehot_labels = math_ops.cast(onehot_labels, logits.dtype)
             losses = tf.nn.softmax_cross_entropy_with_logits(logits, onehot_labels,
                                                   name="xentropy")
+           
+            
             return losses   
 
     parts = []
@@ -835,20 +927,44 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
 #    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
 #    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
 #    branch_mask = tf.reshape(branch_mask, [4,1])
-#    ranch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
+#    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
 #    masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
     for i in range(4):
         print("logits:{0}".format(i))
 #        with tf.name_scope("Branch_" + str(i)):
-        part = get_softmax(logits[i][0], dense_labels, "loss_" + str(i))
+#        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i))
+        softmax = tf.nn.softmax(logits[i][0])
+        part = -tf.reduce_sum(dense_labels * tf.log(softmax), 1)
+#        print(part)
         parts.append(part)
-    
+#    b = net_outputs[-1][0]
+#    b = tf.reshape(b ,[])
+#    b = tf.constant(0)
+#    def f0(): return parts[0]
+#    def f1(): return parts[1]
+#    def f2(): return parts[2]
+#    def f3(): return parts[3]
+#    branch_loss = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
+#                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
+#                      default=f3, exclusive=False)
+#    branch_loss = tf.reshape(branch_loss, [])   
+# =======   
     loss_parts = tf.convert_to_tensor(parts)
     print(loss_parts)
     print(branch_mask)
-    branch_loss = tf.reduce_sum(tf.mul(loss_parts, branch_mask), name="branch_reduce_sum")
+#    loss_parts = tf.Print(loss_parts,[loss_parts],summarize=440)
+    my_mul = tf.mul(loss_parts, branch_mask)
+    print(my_mul)
+#    my_mul = tf.Print(my_mul, [my_mul],summarize=440)
+#    my_mul = tf.boolean_mask(my_mul, b_mask)
+#    my_mul = tf.reduce_mean(my_mul)
+#    print(my_mul)
+    branch_loss = tf.reduce_mean(my_mul, name="branch_reduce_mean")
+# =======
+#    b_mask = [True, False, False, False]
+#    branch_loss = tf.boolean_mask(loss_parts, b_mask)
     slim.losses.add_loss(branch_loss)
-    
+#    slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask)   
             #if tf.assert_equal(branch_mask, tf.constant(i, dtype=tf.int32)):
             #    future_predict = logits[i][0]
             #    future_predict = tf.Print(future_predict, [future_predict, branch_mask, tf.constant(i, dtype=tf.int32)])  
@@ -868,10 +984,10 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
 #    eq_ = tf.equal(b, tf.constant(0))
 #    logits = tf.Print(logits,[b, eq_])
-#    def f0(): return logits[0][0], mask0, "loss_b1"
-#    def f1(): return logits[1][0], mask1, "loss_b2"
-#    def f2(): return logits[2][0], mask2, "loss_b3" 
-#    def f3(): return logits[3][0], mask3, "loss_b4"
+#    def f0(): return logits[0][0] #, mask0
+#    def f1(): return logits[1][0] #, mask1
+#    def f2(): return logits[2][0] #, mask2 
+#    def f3(): return logits[3][0] #, mask3
 
 #    def f0(): return slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask0, scope="loss_b0")
 #    def f1(): return slim.losses.softmax_cross_entropy(logits[1][0], dense_labels, weight=mask1, scope="loss_b1")
@@ -881,13 +997,13 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
 #    b =  tf.constant(0)
 #    cond_l = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
 #                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
-#                      default=f3, exclusive=True)
+#                      default=f3, exclusive=False)
 #    logits = tf.Print(logits, [cond_l])
 #    print(cond_l.get_shape())
 #    cond_l = tf.reshape(cond_l, [108,6])
 #    cond_m = tf.reshape(cond_m, [108])
 #    print(cond_l.get_shape())
-#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b0")
+#    slim.losses.softmax_cross_entropy(cond_l, dense_labels)
 #    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b1")
 #    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b2")
 #    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b3")

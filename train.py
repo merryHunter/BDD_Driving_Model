@@ -132,11 +132,19 @@ def _tower_loss(inputs, outputs, num_classes, scope):
 
   # Assemble all of the losses for the current tower only.
   #losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
+#  scope = "tower_0/loss0/value:0"
   losses = slim.losses.get_losses(scope)
-  print("Losses:{0},scope:{1}".format(losses,scope))
+  def f0(): return slim.losses.get_losses("tower_0/loss0/value:0")
+  def f1(): return slim.losses.get_losses("tower_0/loss1/value:0")
+#  losses = list()
+#  losses.append(l)
+#  print("Losses:{0},scope:{1}".format(losses1,scope))
   # Calculate the total loss for the current tower.
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-
+  print(regularization_losses)
+  b = tf.constant(0)
+  #losses = tf.cond(tf.equal(b, tf.constant(0)), f0, f1 )
+  
   total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
 
   # Compute the moving average of all individual losses and the total loss.
@@ -306,6 +314,7 @@ def train():
     for i in xrange(FLAGS.num_gpus):
       with tf.device('/gpu:%s' % i):
         with tf.name_scope('%s_%d' % (model.TOWER_NAME, i)) as scope:
+          tf.set_random_seed(42)
           if True:
           # I don't see any improvements by pinning all variables on CPU, so I disabled this
           # Force all Variables to reside on the CPU.
@@ -338,6 +347,8 @@ def train():
                             pass
                         if "TrainStage1" not in v:
                             pass
+#                        if "RNN" in v or "discrete0" in v:
+#                            grad_var_list.append(t)
                         else:
                             grad_var_list.append(t)
                     print("-"*40 + "\n gradient will be computed for vars:")
@@ -424,6 +435,7 @@ def train():
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
+ #     print(var.op.name)
       summaries.append(tf.histogram_summary(var.op.name, var))
 
     # Track the moving averages of all trainable variables.
@@ -442,7 +454,8 @@ def train():
     batchnorm_updates_op = tf.group(*batchnorm_updates)
     train_op = tf.group(apply_gradient_op, variables_averages_op,
                         batchnorm_updates_op)
-
+#    for o in train_op:
+#        prin(o.name)
     # Create a saver.
     saver = tf.train.Saver(tf.all_variables(),max_to_keep=100)
 

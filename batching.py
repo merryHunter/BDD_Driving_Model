@@ -139,7 +139,7 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
     if train:
       filename_queue = tf.train.string_input_producer(data_files,
                                                       shuffle=True,
-                                                      capacity=64)
+                                                      capacity=64, seed=42)
     else:
       filename_queue = tf.train.string_input_producer(data_files,
                                                       shuffle=False,

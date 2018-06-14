@@ -221,7 +221,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 1700
+    FLAGS.max_steps = 10000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
@@ -233,12 +233,12 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.arch_selection = "LRCN"
     FLAGS.sub_arch_selection = "car_discrete"
     FLAGS.lstm_hidden_units = "64"
-    FLAGS.add_dropout_layer = True
+    FLAGS.add_dropout_layer = False #True
     FLAGS.keep_prob = 0.5
     FLAGS.cnn_feature = "drop7"
     FLAGS.no_batch_norm = True
     FLAGS.weight_decay_exclude_bias = False
-    FLAGS.enable_basenet_dropout = True
+    FLAGS.enable_basenet_dropout = False #True
     FLAGS.add_dim_reduction = False
     FLAGS.add_avepool_after_dim_reduction = True
 

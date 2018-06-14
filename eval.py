@@ -311,7 +311,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
 #    if branch != 2:
 #      continue
     num_iter += 1
-#    print(logits_v[branch][0][:5])
+#    print(logits_v[0][0][:5])
 #    print(logits_v.shape)
     logits_all = np.concatenate((logits_all, logits_v[branch][0]), axis=0)
     labels_all = np.concatenate((labels_all, labels_v), axis=0)
