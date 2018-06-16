@@ -132,7 +132,7 @@ def _tower_loss(inputs, outputs, num_classes, scope):
 
   # Assemble all of the losses for the current tower only.
   #losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
-#  scope = "tower_0/loss0/value:0"
+  scope = "tower_0/branch_reduce_mean"
   losses = slim.losses.get_losses(scope)
   def f0(): return slim.losses.get_losses("tower_0/loss0/value:0")
   def f1(): return slim.losses.get_losses("tower_0/loss1/value:0")
@@ -154,6 +154,7 @@ def _tower_loss(inputs, outputs, num_classes, scope):
   # Attach a scalar summmary to all individual losses and the total loss; do the
   # same for the averaged version of the losses.
   for l in losses + [total_loss]:
+    print(l.op.name)
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on TensorBoard.
     loss_name = re.sub('%s_[0-9]*/' % model.TOWER_NAME, '', l.op.name)

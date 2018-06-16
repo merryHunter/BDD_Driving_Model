@@ -131,10 +131,10 @@ tf.app.flags.DEFINE_float('ptrain_weight', 1.0,
 tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
-"",
+#"",
 #"/home/chernuka/europilot/my/BDD_Driving_Model/empirical_branched/empirical_dist",
 #"/home/chernuka/europilot/empirical/empirical_dist",
-#"/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
+"/home/chernuka/europilot/my_train_empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -923,18 +923,19 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     print(logits)
     branch_mask = net_outputs[-1][0][0]
     branch_mask = tf.one_hot(branch_mask, 4) # command control, 4 commands
-    branch_mask = tf.reshape(branch_mask, [4,1])
+#    branch_mask = tf.reshape(branch_mask, [4,1])
 #    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
 #    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
 #    branch_mask = tf.reshape(branch_mask, [4,1])
 #    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
 #    masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
+  
     for i in range(4):
         print("logits:{0}".format(i))
 #        with tf.name_scope("Branch_" + str(i)):
-#        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i))
-        softmax = tf.nn.softmax(logits[i][0])
-        part = -tf.reduce_sum(dense_labels * tf.log(softmax), 1)
+        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i))
+#        softmax = tf.nn.softmax(logits[i][0])
+#        part = -tf.reduce_sum(dense_labels * tf.log(softmax), 1)
 #        print(part)
         parts.append(part)
 #    b = net_outputs[-1][0]
@@ -952,10 +953,10 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     loss_parts = tf.convert_to_tensor(parts)
     print(loss_parts)
     print(branch_mask)
-#    loss_parts = tf.Print(loss_parts,[loss_parts],summarize=440)
+#    loss_parts = tf.Print(loss_parts,[loss_parts],summarize=20)
     my_mul = tf.mul(loss_parts, branch_mask)
     print(my_mul)
-#    my_mul = tf.Print(my_mul, [my_mul],summarize=440)
+#    my_mul = tf.Print(my_mul, [my_mul],summarize=20)
 #    my_mul = tf.boolean_mask(my_mul, b_mask)
 #    my_mul = tf.reduce_mean(my_mul)
 #    print(my_mul)

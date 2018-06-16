@@ -217,11 +217,11 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag
+    FLAGS.train_dir = "data/" + tag # + "branched..."
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 10000
+    FLAGS.max_steps = 4000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
