@@ -10,7 +10,7 @@ FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
 FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
-FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-com-new/"
+FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-com-normal/"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'
@@ -217,11 +217,11 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag # + "branched..."
+    FLAGS.train_dir = "data/" + tag  + "_branched_v2_weighted_16hidden_normal1/"
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 4000
+    FLAGS.max_steps = 16000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99

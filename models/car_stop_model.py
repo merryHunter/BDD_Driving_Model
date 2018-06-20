@@ -132,9 +132,9 @@ tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
 #"",
-#"/home/chernuka/europilot/my/BDD_Driving_Model/empirical_branched/empirical_dist",
+"/home/chernuka/europilot/empirical_normal/empirical_dist",
 #"/home/chernuka/europilot/empirical/empirical_dist",
-"/home/chernuka/europilot/my_train_empirical/empirical_dist",
+#"/home/chernuka/europilot/my_train_empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -440,7 +440,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                                  [nhist, 1],
                                  stride=1,
                                  padding="VALID",
-                                 scope="temporal_conv")
+	                                 scope="temporal_conv")
 
             # reshape to remove batch dimension
             hidden_out = tf.reshape(hidden, [shape[0] * shape[1], -1])
@@ -558,14 +558,14 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
-#                b = slim.fully_connected(hidden_out,
-#                                               16,
-#                                               scope=scope +"hidden"+ str(i),
-#                                               activation_fn=None,
-#                                               normalizer_fn=None,
-#                                               biases_initializer=tf.zeros_initializer)
+                b = slim.fully_connected(hidden_out,
+                                               16,
+                                               scope=scope +"hidden"+ str(i),
+                                               activation_fn=tf.nn.relu,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)
                 
-                branch_output = [slim.fully_connected(hidden_out,
+                branch_output = [slim.fully_connected(b,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
@@ -875,10 +875,10 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     dense_labels = tf.reshape(dense_labels, [-1, num_classes])
     
     if FLAGS.class_balance_path!="":
-        path0 = FLAGS.class_balance_path + "_discrete.npy"
-        path1 = FLAGS.class_balance_path + "_discrete.npy"
-        path2 = FLAGS.class_balance_path + "_discrete.npy"
-        path3 = FLAGS.class_balance_path + "_discrete.npy"
+        path0 = FLAGS.class_balance_path + "_discrete0.npy"
+        path1 = FLAGS.class_balance_path + "_discrete1.npy"
+        path2 = FLAGS.class_balance_path + "_discrete2.npy"
+        path3 = FLAGS.class_balance_path + "_discrete3.npy"
         empirical_distribution0 = np.load(path0)
         empirical_distribution1 = np.load(path1)
         empirical_distribution2 = np.load(path2)
@@ -925,15 +925,15 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     branch_mask = tf.one_hot(branch_mask, 4) # command control, 4 commands
 #    branch_mask = tf.reshape(branch_mask, [4,1])
 #    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
-#    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
+#    branch_mask = tf.constant([0.0, 0.0, 0.0, 1.0])
 #    branch_mask = tf.reshape(branch_mask, [4,1])
 #    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
-#    masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
+    masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
   
     for i in range(4):
         print("logits:{0}".format(i))
 #        with tf.name_scope("Branch_" + str(i)):
-        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i))
+        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i), weight=masks[i])
 #        softmax = tf.nn.softmax(logits[i][0])
 #        part = -tf.reduce_sum(dense_labels * tf.log(softmax), 1)
 #        print(part)

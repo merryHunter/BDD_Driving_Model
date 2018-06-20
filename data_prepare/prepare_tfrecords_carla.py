@@ -35,7 +35,7 @@ import sys
 
 tf.app.flags.DEFINE_string('video_index', '/unreliable/DATASETS/carla/video_filtered_train_00_nomultiturn.txt', 'filtered video indexing')
 tf.app.flags.DEFINE_string('output_directory', '/unreliable/DATASETS/europilot/tfrecords-bdd/train', 'Training data directory')
-
+tf.app.flags.DEFINE_string('info_directory', '/unreliable/DATASETS/carla/train-02-info-carla/', 'info files directory')
 #tf.app.flags.DEFINE_integer('train_shards', 1024, 'Number of shards in training TFRecord files.') 
 #tf.app.flags.DEFINE_integer('validation_shards', 128, 'Number of shards in validation TFRecord files.')
 
@@ -136,7 +136,7 @@ def read_one_video(video_path, jobid):
     ratio = False
 
     # save the speed field
-    json_path = os.path.join("/unreliable/DATASETS/carla/train-02-info-carla/", fprefix+".json")
+    json_path = os.path.join(FLAGS.info_directory, fprefix+".json")
     speeds = get_interpolated_speed(json_path, fprefix+".mov", hz_res)
     print('before')
     try:

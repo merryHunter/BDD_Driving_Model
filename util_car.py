@@ -282,7 +282,16 @@ def vis_discrete(tout, predict, frame_rate,
         turn = tout[5]
         locs = tout[6]
         decoded = highres
-
+#    print(decoded)
+#    print(speed)
+#    print(name)
+#    print(highres)
+#    print(isstop)
+#    print(turn)
+#    print(locs)
+#    print(tout)
+#    decoded= isstop #decoded[0]
+#    print(decoded)
     images = copy.deepcopy(decoded[j, :, :, :, :])
     _, hi, wi, _ = images.shape
     locs = locs[j, :, :]
