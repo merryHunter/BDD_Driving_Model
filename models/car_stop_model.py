@@ -132,7 +132,8 @@ tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
 #"",
-"/home/chernuka/europilot/empirical_normal/empirical_dist",
+"/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
+#"/home/chernuka/europilot/empirical_normal/empirical_dist",
 #"/home/chernuka/europilot/empirical/empirical_dist",
 #"/home/chernuka/europilot/my_train_empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
@@ -875,10 +876,10 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     dense_labels = tf.reshape(dense_labels, [-1, num_classes])
     
     if FLAGS.class_balance_path!="":
-        path0 = FLAGS.class_balance_path + "_discrete0.npy"
-        path1 = FLAGS.class_balance_path + "_discrete1.npy"
-        path2 = FLAGS.class_balance_path + "_discrete2.npy"
-        path3 = FLAGS.class_balance_path + "_discrete3.npy"
+        path0 = FLAGS.class_balance_path + "_discrete.npy"
+        path1 = FLAGS.class_balance_path + "_discrete.npy"
+        path2 = FLAGS.class_balance_path + "_discrete.npy"
+        path3 = FLAGS.class_balance_path + "_discrete.npy"
         empirical_distribution0 = np.load(path0)
         empirical_distribution1 = np.load(path1)
         empirical_distribution2 = np.load(path2)

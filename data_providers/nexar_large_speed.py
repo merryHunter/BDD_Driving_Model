@@ -132,7 +132,7 @@ class MyDataset(Dataset):
 #       Don't put actual number of training files! Due to unknown reasons, if you do that model 
 #	accuracy drops to 0.09!!!!
 #            return 1000 ---> don't do this!!
-            return 3941
+            return 66 #3941
             if FLAGS.retain_first_k_training_example > 0:
                 return FLAGS.retain_first_k_training_example
 
@@ -162,7 +162,7 @@ class MyDataset(Dataset):
             else:
                 return 28738
         if self.subset == 'validation':
-	    return 50
+	    return 14 #50
             if FLAGS.custom_dataset_name == "nexar_MKZ":
                 return 29
             elif FLAGS.custom_dataset_name == "nexar_vehicle_ahead":

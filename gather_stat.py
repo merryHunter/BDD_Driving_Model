@@ -83,9 +83,9 @@ def stat_labels(labels_in, sess, coord, tensors_in):
         if not FLAGS.stat_datadriven_only:
             discrete_v, dc, ds, labels_stop_v, future_labels_v, b_v = \
                 sess.run([discrete_labels, dense_course, dense_speed, labels_stop,future_labels, b])
-            if b_v[0] != 3:
+#            if b_v[0] != 3:
 #                print(b_v[0])
-                continue
+#                continue
 
             dc = np.mean(dc, axis=0)
             ds = np.mean(ds, axis=0)
@@ -126,7 +126,7 @@ def stat_labels(labels_in, sess, coord, tensors_in):
         speed_acc /= count
 
     stop_acc = 1.0 * stop_acc / np.sum(stop_acc)
-
+    print(FLAGS.stat_output_path)
     np.save(FLAGS.stat_output_path + "_stop", stop_acc)
     np.save(FLAGS.stat_output_path + "_discrete", discrete_acc)
     if not FLAGS.stat_datadriven_only:
