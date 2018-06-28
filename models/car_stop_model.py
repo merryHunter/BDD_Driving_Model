@@ -559,14 +559,14 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
-                b = slim.fully_connected(hidden_out,
-                                               16,
-                                               scope=scope +"hidden"+ str(i),
-                                               activation_fn=tf.nn.relu,
-                                               normalizer_fn=None,
-                                               biases_initializer=tf.zeros_initializer)
+#                b = slim.fully_connected(hidden_out,
+#                                               16,
+#                                               scope=scope +"hidden"+ str(i),
+#                                               activation_fn=tf.nn.relu,
+#                                               normalizer_fn=None,
+#                                               biases_initializer=tf.zeros_initializer)
                 
-                branch_output = [slim.fully_connected(b,
+                branch_output = [slim.fully_connected(hidden_out,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
