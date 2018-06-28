@@ -109,7 +109,7 @@ tf.app.flags.DEFINE_boolean('use_perspective_augmentation', False,
 
 tf.app.flags.DEFINE_integer('inflate_MKZ_factor', -1,
                             'inflate the MKZ data if > 0 ')
-
+N_COMMANDS = 4 # control input 2,3,4,5
 
 # the newly designed class has to have those methods
 # especially the reader() that reads the binary record and the
@@ -128,10 +128,7 @@ class MyDataset(Dataset):
         # TODO: Edit number
 
         if self.subset == 'train':
-#	This parameter changes training !
-#       Don't put actual number of training files! Due to unknown reasons, if you do that model 
-#	accuracy drops to 0.09!!!!
-#            return 1000 ---> don't do this!!
+#	This parameter changes training learning rate schedule. The actual number of samples may cause instabilities during training.
             return 3941
             if FLAGS.retain_first_k_training_example > 0:
                 return FLAGS.retain_first_k_training_example
@@ -855,10 +852,9 @@ class MyDataset(Dataset):
 
         name = tf.tile(name, [batched[0].get_shape()[0].value])
 
-        ins = batched[0:2] + [name] + [tf.reshape(tf.mod(command,4),[1,-1])]
-#        cc = [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
+        ins = batched[0:2] + [name] + [tf.reshape(tf.mod(command,N_COMMANDS),[1,-1])]
 
-        outs = batched[2:5]  + [tf.reshape(tf.mod(command,4),[1,-1])] # [tf.one_hot(tf.mod(command, 4), depth=4)] # 4 == N_COMMANDS
+        outs = batched[2:5]  + [tf.reshape(tf.mod(command,N_COMMANDS),[1,-1])] 
         if FLAGS.city_data:
             # city batch means how many batch does each video sequence forms
             FLAGS.city_batch = len_downsampled // FLAGS.n_sub_frame

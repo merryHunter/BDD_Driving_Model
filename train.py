@@ -132,18 +132,13 @@ def _tower_loss(inputs, outputs, num_classes, scope):
 
   # Assemble all of the losses for the current tower only.
   #losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
+
+  # select only final loss over all branches. Now works only for 1 gpu!
   scope = "tower_0/branch_reduce_mean"
   losses = slim.losses.get_losses(scope)
-  def f0(): return slim.losses.get_losses("tower_0/loss0/value:0")
-  def f1(): return slim.losses.get_losses("tower_0/loss1/value:0")
-#  losses = list()
-#  losses.append(l)
-#  print("Losses:{0},scope:{1}".format(losses1,scope))
   # Calculate the total loss for the current tower.
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   print(regularization_losses)
-  b = tf.constant(0)
-  #losses = tf.cond(tf.equal(b, tf.constant(0)), f0, f1 )
   
   total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
 
@@ -346,6 +341,7 @@ def train():
                             
                         if (v in multiplier) and (abs(multiplier[v]) < 1e-6):
                             pass
+                        # comment to unfreeze CNN backbone Caffenet weights
                         if "TrainStage1" not in v:
                             pass
 #                        if "RNN" in v or "discrete0" in v:

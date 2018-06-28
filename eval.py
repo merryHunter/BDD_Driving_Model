@@ -209,8 +209,6 @@ def plot_confusion_matrix(cm, classes,
 
 
 def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, tensors_in, summary_writer):
-#  control_branch = labels_in[-1]
-#  logits = tf.nn.softmax(logits_all[control_branch][0])
   labels = labels_in[1] # since the second entry is the turn label
   nclass = labels.get_shape()[-1].value
   labels = tf.reshape(labels, [-1, nclass])
@@ -235,7 +233,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
                                             seg_mask,
                                             19,
                                             weights=weight)
-  # TODO:
+  # TODO: not proper loss computation
   real_loss = tf.nn.softmax_cross_entropy_with_logits(logits_all_param[0], labels)
   real_loss = tf.reduce_mean(real_loss)
 
@@ -246,6 +244,8 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
   labels_all = np.zeros((0, nclass), dtype=np.float32)
 
   save_loss = []
+
+  # adapting branched architecture for inference and evaluation
   logits_branches = []
   for j in range(4):
     logits_branches.append(tf.nn.softmax(logits_all_param[j]))
@@ -270,25 +270,16 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
       print("coord thinks we should exit, at step: ", step)
       break
     if True: #FLAGS.output_visualizations:
-#      logits_branches = []
-#      for j in range(4):
-#          logits_branches.append(tf.nn.softmax(logits_all_param[j]))
-#      logits_run = tf.convert_to_tensor(logits_branches)
-      trv =  tf.trainable_variables()
-#      weights0 = [v for v in trv if v.name == "TrainStage1_discrete_fcn_lstm/softmax_linear_car_discrete0/weights"]
-#      weights0 = sess.run([weights0])
-#      print(weights0)
       real_loss_v, loss_v, labels_v, logits_v, tin_out_v = \
           sess.run([real_loss, loss_op, labels, logits_run, tensors_in+labels_in])
       branch = int(tin_out_v[-1][0][0])
       name = tin_out_v[2]
-#      print("branch:{0}:: {1}".format(branch,name))
-#      print(weight0)
+      print("branch:{0}:: {1}".format(branch,name))
       if FLAGS.use_simplifed_continuous_vis:
         vis_func = util_car.vis_discrete_colormap_antialias
       else:
         vis_func = util_car.vis_discrete
-#      print(logits_v[0][0])
+       # uncomment to visualize predictions 
 #      for isample in range(FLAGS.batch_size):
 #        vis_func(tin_out_v,
 #                              logits_v[branch][0],
@@ -296,9 +287,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
 #                              isample,
 #                              True,
 #                              os.path.join(FLAGS.eval_dir, FLAGS.eval_viz_id),
- #                             string_type='image')
 #         )
-#        pass
 
       tin_out_v_2 = tin_out_v[2]
     else:
@@ -308,13 +297,11 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
       else:
         real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2 = \
             sess.run([real_loss, loss_op, labels, logits, tensors_in[2]])
-#    if branch != 0:
+#    if branch != 0: to test per branch accuracy uncomment
 #      continue
     num_iter += 1
-#    print(branch)
-#    print(tin_out_v_2)
+    # raw predictions
 #    print(logits_v[branch][0])
-#    print(logits_v[branch][0].shape)
     logits_all = np.concatenate((logits_all, logits_v[branch][0]), axis=0)
     labels_all = np.concatenate((labels_all, labels_v), axis=0)
     total_loss = total_loss + loss_v[0]

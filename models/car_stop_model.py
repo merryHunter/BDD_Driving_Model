@@ -132,10 +132,8 @@ tf.app.flags.DEFINE_boolean('omit_action_loss', False,
                           'Omit the action loss for using the ptrain as pretraining')
 tf.app.flags.DEFINE_string('class_balance_path', 
 #"",
+# always use weighted training!
 "/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
-#"/home/chernuka/europilot/empirical_normal/empirical_dist",
-#"/home/chernuka/europilot/empirical/empirical_dist",
-#"/home/chernuka/europilot/my_train_empirical/empirical_dist",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -194,7 +192,11 @@ tf.app.flags.DEFINE_float('n_hidden_units_branch', 128,
 
 
 FLAGS = tf.app.flags.FLAGS
-N_COMMANDS = 4 # Control signal, int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight) | in selected subset no follow lane is present!
+
+# number of command inputs, equal to number of branches
+N_COMMANDS = 4 # Control signal, int ( 2 Follow lane, 3 Left, 4 Right, 5 Straight, taken from CARLA) 
+##  in selected subset no follow lane is present!
+
 def convert_name(name, new_prefix):
     if not ("TrainStage" in name):
         return name
@@ -573,16 +575,9 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer)]
                 branches.append(branch_output)
-
+        # need to convert to tensor, loss cannot operate with list in TF
         return tf.convert_to_tensor(branches, name="my_branches")
-#        return branches
 
-#        logits = [slim.fully_connected(hidden_out,
-#                                       num_classes,
-#                                       scope=scope,
-#                                       activation_fn=None,
-#                                       normalizer_fn=None,
-#                                       biases_initializer=tf.zeros_initializer)]
     if FLAGS.city_data:
         logits += [city_features]
 
@@ -778,103 +773,21 @@ def loss_car_discrete_original(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
     slim.losses.softmax_cross_entropy(logits[0], dense_labels, weight=mask)
 
-def loss_car_discrete_v7(logits, net_outputs, batch_size=None):
-    # net_outputs contains is_stop, turn
-    dense_labels = net_outputs[1]    # shape: N * F * nclass
-    # reshape to 2 dimension
-    num_classes = dense_labels.get_shape()[-1].value
-    dense_labels = tf.reshape(dense_labels, [-1, num_classes])
-
-    if FLAGS.class_balance_path!="":
-        path = FLAGS.class_balance_path + "_discrete.npy"
-        empirical_distribution = np.load(path)
-        weights = util.loss_weights(empirical_distribution, FLAGS.class_balance_epsilon)
-        print("using weighted training: ", weights)
-        # assume the label being the max response at that point
-        labels = tf.argmax(dense_labels, dimension=1)
-        mask = tf.gather(weights, labels)
-    else:
-        mask = 1.0
-
-    # Cross entropy loss for the main softmax prediction.
-    slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask,scope="loss0")
-    slim.losses.softmax_cross_entropy(logits[1][0], dense_labels, weight=mask,scope="loss1")
-    slim.losses.softmax_cross_entropy(logits[2][0], dense_labels, weight=mask,scope="loss2")
-    slim.losses.softmax_cross_entropy(logits[3][0], dense_labels, weight=mask,scope="loss3") 
-
-def loss_car_discrete_v5(logits, net_outputs, batch_size=None):
-    # net_outputs contains is_stop, turn
-    dense_labels = net_outputs[1]    # shape: N * F * nclass
-    # reshape to 2 dimension
-    num_classes = dense_labels.get_shape()[-1].value
-    dense_labels = tf.reshape(dense_labels, [-1, num_classes])
-
-    if FLAGS.class_balance_path!="":
-        path = FLAGS.class_balance_path + "_discrete.npy"
-        empirical_distribution = np.load(path)
-        weights = util.loss_weights(empirical_distribution, FLAGS.class_balance_epsilon)
-        print("using weighted training: ", weights)
-        # assume the label being the max response at that point
-        labels = tf.argmax(dense_labels, dimension=1)
-        mask = tf.gather(weights, labels)
-    else:
-        mask = 1.0
-#    b = net_outputs[-1][0][0]
-#    branch_mask = tf.constant([1.0, 0.0, 0.0, 0.0])
-#    branch_mask = tf.reshape(branch_mask, [4,1])
-    b = tf.constant(0)
-    print(logits)
-    # tf case disable gradients
-    def f0(logits_p):
-        l_tmp = []
-        l_tmp.append(logits_p[0])
-        l_tmp.append(tf.stop_gradient(logits_p[1]))
-        l_tmp.append(tf.stop_gradient(logits_p[2]))
-        l_tmp.append(tf.stop_gradient(logits_p[3]))
-        logit = tf.convert_to_tensor(l_tmp)
-        return logit
-    def f1(logits_p):
-        tf.stop_gradient(logits_p[0])
-        tf.stop_gradient(logits_p[2])
-        tf.stop_gradient(logits_p[3])
-        return logits_p[1]
-    def f2():
-        tf.stop_gradient(logits[0])
-        tf.stop_gradient(logits[1])
-        tf.stop_gradient(logits[3])
-        return logits[2]
-    def f3():
-        tf.stop_gradient(logits[0])
-        tf.stop_gradient(logits[1])
-        tf.stop_gradient(logits[2])
-        return logits[3]
-
-    log_cond = tf.case(pred_fn_pairs=[
-              (tf.equal(b, tf.constant(0)), lambda : f0(logits)),
-              (tf.equal(b, tf.constant(1)), lambda : f1(logits))],
-               default=lambda: f0(logits), exclusive=False)
-
-#tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f0,
-#                        tf.equal(b, tf.constant(0)): f2, tf.equal(b, tf.constant(3)): f0},
- #              default=f3, exclusive=False)    
-    log_cond = tf.reshape(log_cond, [4, 108,6])
-    # softmax xe
-    parts = []
-    with tf.control_dependencies([log_cond]):
-        slim.losses.softmax_cross_entropy(log_cond[0], dense_labels, weight=mask)
-        x_test = tf.stop_gradient(log_cond[1])
-        slim.losses.softmax_cross_entropy(x_test, dense_labels, weight=mask)
-
-    # Cross entropy loss for the main softmax prediction.
-#    slim.losses.softmax_cross_entropy(logits[0], dense_labels, weight=mask)
-
 def loss_car_discrete(logits, net_outputs, batch_size=None):
+    """
+    Loss for branched architecture. 
+    :param logits: tensor [N_COMMANDS, 1, n_sub_frame, n_actions]
+    """
     # net_outputs contains is_stop, turn
     dense_labels = net_outputs[1]    # shape: N * F * nclass
     # reshape to 2 dimension
     num_classes = dense_labels.get_shape()[-1].value
     dense_labels = tf.reshape(dense_labels, [-1, num_classes])
-    
+
+    """
+    Now we use the same class weights for all branches. 
+    It is left as a placeholder to use weighting training per branch separately.    
+    """
     if FLAGS.class_balance_path!="":
         path0 = FLAGS.class_balance_path + "_discrete.npy"
         path1 = FLAGS.class_balance_path + "_discrete.npy"
@@ -901,114 +814,38 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
         print(mask0)
     else:
         mask = 1.0
-    from tensorflow.python.framework import ops
-    from tensorflow.python.ops import math_ops
-    def get_softmax(logits, onehot_labels, scope):
-        with ops.name_scope(scope, "softmax_cross_entropy_loss",
-                        [logits, onehot_labels]):
-            logits.get_shape().assert_is_compatible_with(onehot_labels.get_shape())
-            onehot_labels = math_ops.cast(onehot_labels, logits.dtype)
-            losses = tf.nn.softmax_cross_entropy_with_logits(logits, onehot_labels,
-                                                  name="xentropy")
-           
-            
-            return losses   
 
     parts = []
-#    with tf.variable_scope("branch_loss"):
-#        scope.reuse_variables()
-#        acc = tf.get_variable(name="acc", shape=logits[0][0].get_shape(), initializer=tf.constant_initializer(0.0))
-#        acc = tf.Variable(tf.zeros(logits[0][0].get_shape()),name="acc")
-#        acc = tf.mul(acc, tf.constant(0.0))
-#        acc = tf.Print(acc,[acc], message="init acc")
-    print(logits)
-    branch_mask = net_outputs[-1][0][0]
-    branch_mask = tf.one_hot(branch_mask, 4) # command control, 4 commands
-#    branch_mask = tf.reshape(branch_mask, [4,1])
-#    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
-#    branch_mask = tf.constant([0.0, 0.0, 0.0, 1.0])
-#    branch_mask = tf.reshape(branch_mask, [4,1])
-#    branch_mask = tf.Print(branch_mask, [branch_mask], summarize=4)
+    branch_mask = net_outputs[-1][0][0] # 2 | 3 | 4 | 5 , feed at data_provider/nexar_large_speed.py
+    branch_mask = tf.one_hot(branch_mask, N_COMMANDS) # command control, 4 commands
+    
+    # class imbalance masks for each branch, now all are the same 
     masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
   
-    for i in range(4):
+    """
+    Loss = sum( loss_branch_softxe_i * branch_mask ) / n
+    
+    Computes loss for all branches, but multiply by zero if the branch number is not equal to current command input.
+
+    Multiplication of one hot encoded mask by softmax loss part for each branch and reducing sum of losses.
+    """
+    for i in range(N_COMMANDS): # for each branch
         print("logits:{0}".format(i))
-#        with tf.name_scope("Branch_" + str(i)):
+        # compute loss for branch_i
         part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i), weight=masks[i])
-#        softmax = tf.nn.softmax(logits[i][0])
-#        part = -tf.reduce_sum(dense_labels * tf.log(softmax), 1)
-#        print(part)
         parts.append(part)
-#    b = net_outputs[-1][0]
-#    b = tf.reshape(b ,[])
-#    b = tf.constant(0)
-#    def f0(): return parts[0]
-#    def f1(): return parts[1]
-#    def f2(): return parts[2]
-#    def f3(): return parts[3]
-#    branch_loss = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
-#                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
-#                      default=f3, exclusive=False)
-#    branch_loss = tf.reshape(branch_loss, [])   
-# =======   
+   
     loss_parts = tf.convert_to_tensor(parts)
     print(loss_parts)
     print(branch_mask)
 #    loss_parts = tf.Print(loss_parts,[loss_parts],summarize=20)
+    # apply the branch mask
     my_mul = tf.mul(loss_parts, branch_mask)
-    print(my_mul)
-#    my_mul = tf.Print(my_mul, [my_mul],summarize=20)
-#    my_mul = tf.boolean_mask(my_mul, b_mask)
-#    my_mul = tf.reduce_mean(my_mul)
-#    print(my_mul)
+
     branch_loss = tf.reduce_mean(my_mul, name="branch_reduce_mean")
-# =======
-#    b_mask = [True, False, False, False]
-#    branch_loss = tf.boolean_mask(loss_parts, b_mask)
-    slim.losses.add_loss(branch_loss)
-#    slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask)   
-            #if tf.assert_equal(branch_mask, tf.constant(i, dtype=tf.int32)):
-            #    future_predict = logits[i][0]
-            #    future_predict = tf.Print(future_predict, [future_predict, branch_mask, tf.constant(i, dtype=tf.int32)])  
     
-#            m = tf.mul(future_predict, l)
-#            m = tf.Print(m,[m])
-#            acc = tf.add(acc, m)
-#            acc = tf.Print(acc,[acc])
-
-#    b = net_outputs[-1][0]
-#    b = tf.reshape(b ,[])
-#    print(b)
-#    logits = logits[branch]
-#    logits = tf.Print(logits, [logits])
-#    b = tf.constant([0])
-#    print(b)
-    # Cross entropy loss for the main softmax prediction.
-#    eq_ = tf.equal(b, tf.constant(0))
-#    logits = tf.Print(logits,[b, eq_])
-#    def f0(): return logits[0][0] #, mask0
-#    def f1(): return logits[1][0] #, mask1
-#    def f2(): return logits[2][0] #, mask2 
-#    def f3(): return logits[3][0] #, mask3
-
-#    def f0(): return slim.losses.softmax_cross_entropy(logits[0][0], dense_labels, weight=mask0, scope="loss_b0")
-#    def f1(): return slim.losses.softmax_cross_entropy(logits[1][0], dense_labels, weight=mask1, scope="loss_b1")
-#    def f2(): return slim.losses.softmax_cross_entropy(logits[2][0], dense_labels, weight=mask2, scope="loss_b2")
-#    def f3(): return slim.losses.softmax_cross_entropy(logits[3][0], dense_labels, weight=mask3, scope="loss_b3")
-
-#    b =  tf.constant(0)
-#    cond_l = tf.case({tf.equal(b, tf.constant(0)): f0, tf.equal(b, tf.constant(1)): f1,
-#                      tf.equal(b, tf.constant(2)): f2, tf.equal(b, tf.constant(3)): f3},
-#                      default=f3, exclusive=False)
-#    logits = tf.Print(logits, [cond_l])
-#    print(cond_l.get_shape())
-#    cond_l = tf.reshape(cond_l, [108,6])
-#    cond_m = tf.reshape(cond_m, [108])
-#    print(cond_l.get_shape())
-#    slim.losses.softmax_cross_entropy(cond_l, dense_labels)
-#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b1")
-#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b2")
-#    slim.losses.softmax_cross_entropy(cond_l, dense_labels, weight=cond_m, scope="loss_b3")
+    # important step, in train.py during average gradient, we take only that loss and discard separate losses for each branch.
+    slim.losses.add_loss(branch_loss)
 
 
 ##################### Loss Functions of the continous discritized #########
