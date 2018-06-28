@@ -346,8 +346,8 @@ def train():
                             
                         if (v in multiplier) and (abs(multiplier[v]) < 1e-6):
                             pass
-#                        if "TrainStage1" not in v:
-#                            pass
+                        if "TrainStage1" not in v:
+                            pass
 #                        if "RNN" in v or "discrete0" in v:
 #                            grad_var_list.append(t)
                         else:
