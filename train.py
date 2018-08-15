@@ -482,7 +482,7 @@ def train():
                 log_device_placement=FLAGS.log_device_placement,
                 intra_op_parallelism_threads=1)
     config.gpu_options.allow_growth = True
-    config.gpu_options.per_process_gpu_memory_fraction = 0.45 
+#    config.gpu_options.per_process_gpu_memory_fraction = 0.45 
     sess = tf.Session(config=config)
     sess.run(init)
 

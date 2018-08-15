@@ -9,8 +9,8 @@ import tensorflow as tf
 FLAGS = tf.app.flags.FLAGS
 
 ############################Set those path before use###################################
-FLAGS.pretrained_model_path = "/home/chernuka/europilot/data/models/tf.caffenet.bin"
-FLAGS.data_dir = "/unreliable/DATASETS/europilot/tfrecords-selected/"
+FLAGS.pretrained_model_path = "/home/ivan/thesis/bdd_driving_model_branched/models/tf.caffenet.bin"
+FLAGS.data_dir = "/data0/ivan/tfrecords-1200/"
 
 # for privilege training: segmentation image index and labels
 train_city_image_list = '/backup/BDDNexar/Harry_config/Color_train_harry.txt'
@@ -217,11 +217,11 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag  + "_branched_hidden16_selected/"
+    FLAGS.train_dir = "data/" + tag  + "_branched_tf1200/"
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 500
+    FLAGS.max_steps = 2000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
@@ -307,7 +307,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
         set_gpu("0")
         FLAGS.subset = "train"
 
-        FLAGS.stat_output_path = "data/" + tag + "/empirical_dist"
+        FLAGS.stat_output_path = "data/" + tag + "/empirical_dist_tf1200"
         FLAGS.eval_method = "stat_labels"
         FLAGS.no_image_input = True
         FLAGS.subsample_factor = 10

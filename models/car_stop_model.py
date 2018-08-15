@@ -133,7 +133,7 @@ tf.app.flags.DEFINE_boolean('omit_action_loss', False,
 tf.app.flags.DEFINE_string('class_balance_path', 
 #"",
 # always use weighted training!
-"/home/chernuka/europilot/my/BDD_Driving_Model/data/discrete_fcn_lstm/empirical_dist",
+"/home/ivan/thesis/bdd_driving_model_branched/data/discrete_fcn_lstm/empirical_dist_tf1200",
                             '''Which empirical distribution path to use, if empty then don't use balancing''')
 tf.app.flags.DEFINE_float('class_balance_epsilon', 0.01,
                             '''having this prob to draw from a uniform distribution''')
@@ -561,14 +561,14 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
         for i in range(N_COMMANDS):
             with tf.name_scope("Branch_" + str(i)):
-                h = slim.fully_connected(hidden_out,
-                                               16,
-                                               scope=scope +"hidden"+ str(i),
-                                               activation_fn=tf.nn.relu,
-                                               normalizer_fn=None,
-                                               biases_initializer=tf.zeros_initializer)
+#                h = slim.fully_connected(hidden_out,
+#                                               16,
+#                                               scope=scope +"hidden"+ str(i),
+#                                               activation_fn=tf.nn.relu,
+#                                               normalizer_fn=None,
+#                                               biases_initializer=tf.zeros_initializer)
                 
-                branch_output = [slim.fully_connected(h,
+                branch_output = [slim.fully_connected(hidden_out,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,

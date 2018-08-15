@@ -129,7 +129,7 @@ class MyDataset(Dataset):
 
         if self.subset == 'train':
 #	This parameter changes training learning rate schedule. The actual number of samples may cause instabilities during training.
-            return 3941
+            return 926 #3941
             if FLAGS.retain_first_k_training_example > 0:
                 return FLAGS.retain_first_k_training_example
 
@@ -183,7 +183,7 @@ class MyDataset(Dataset):
                 return 1906
 
         if self.subset == "test":
-            return 400
+            return 191
             if FLAGS.release_batch:
                 return 3561
 
