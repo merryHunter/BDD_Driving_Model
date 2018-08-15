@@ -221,7 +221,7 @@ def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 2000
+    FLAGS.max_steps = 4000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
