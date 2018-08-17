@@ -453,33 +453,46 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
             splits = (FLAGS.lstm_hidden_units).split(",")
             splits = [int(x.strip()) for x in splits]
-
-            # the multilayer stacked LSTM
-            lstms = []
-            for hidden in splits:
-                lstms.append(tf.nn.rnn_cell.BasicLSTMCell(hidden, state_is_tuple=True))
-            stacked_lstm = tf.nn.rnn_cell.MultiRNNCell(lstms, state_is_tuple=True)
+            branches = []
+            for i in range(N_COMMANDS):
+                with tf.name_scope("Branch_" + str(i)):
+                 # the multilayer stacked LSTM
+                    lstms = []
+                    for hidden in splits:
+                        lstms.append(tf.nn.rnn_cell.BasicLSTMCell(hidden, state_is_tuple=True))
+                    stacked_lstm = tf.nn.rnn_cell.MultiRNNCell(lstms, state_is_tuple=True)
 
             # feed into rnn
-            feature_unpacked = tf.unpack(all_features, axis=1)
+                    feature_unpacked = tf.unpack(all_features, axis=1)
+                 
+#                    if initial_state is not None:
+#                        begin_state = initial_state
+#                    else:
+                    begin_state = stacked_lstm.zero_state(shape[0], dtype=tf.float32)
 
-            if initial_state is not None:
-                begin_state = initial_state
-            else:
-                begin_state = stacked_lstm.zero_state(shape[0], dtype=tf.float32)
-
-            output, state = tf.nn.rnn(stacked_lstm,
+                    output, state = tf.nn.rnn(stacked_lstm,
                                       feature_unpacked,
                                       dtype=tf.float32,
-                                      initial_state=begin_state)
+                                      initial_state=begin_state, scope="rnn_"+str(i))
             # TODO: state is not used afterwards
 
             ################Final Classification#################
             # concatentate outputs into a single tensor, the output size is (batch*nframe, hidden[-1])
 
-            hidden_out = tf.pack(output, axis=1, name='pack_rnn_outputs')
-            hidden_out = tf.reshape(hidden_out, [shape[0] * shape[1], -1])
-
+                    hidden_out = tf.pack(output, axis=1, name='pack_rnn_outputs_'+str(i))
+                    hidden_out = tf.reshape(hidden_out, [shape[0] * shape[1], -1])
+                    scope =  "softmax_linear_%s" % (FLAGS.sub_arch_selection)
+                    num_classes = 6
+                    branch_output = [slim.fully_connected(hidden_out,
+                                               num_classes,
+                                               scope=scope + str(i),
+                                               activation_fn=None,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)]
+                    branches.append(branch_output)
+            
+            # need to convert to tensor, loss cannot operate with list in TF
+            return tf.convert_to_tensor(branches, name="my_branches")
         elif FLAGS.temporal_net.lower() == "convlstm":
             # validate only image features are presented
             # it should have 4 shape coordinates: B*F, H, W, C

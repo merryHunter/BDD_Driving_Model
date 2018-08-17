@@ -247,10 +247,13 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
 
   # adapting branched architecture for inference and evaluation
   logits_branches = []
+  real_branches = []
   for j in range(4):
     logits_branches.append(tf.nn.softmax(logits_all_param[j]))
+    r = tf.nn.softmax_cross_entropy_with_logits(logits_all_param[j], labels)
+    real_branches.append(tf.reduce_mean(r))
   logits_run = tf.convert_to_tensor(logits_branches)
-
+  real_run = tf.convert_to_tensor(real_branches)
 
   print('%s: starting evaluation on (%s).' % (datetime.now(), FLAGS.subset))
   start_time = time.time()
@@ -271,7 +274,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
       break
     if True: #FLAGS.output_visualizations:
       real_loss_v, loss_v, labels_v, logits_v, tin_out_v = \
-          sess.run([real_loss, loss_op, labels, logits_run, tensors_in+labels_in])
+          sess.run([real_run, loss_op, labels, logits_run, tensors_in+labels_in])
       branch = int(tin_out_v[-1][0][0])
       name = tin_out_v[2]
       print("branch:{0}:: {1}".format(branch,name))
@@ -295,8 +298,8 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
         real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2, mean_iou_v, iou_update_op_v = \
             sess.run([real_loss, loss_op, labels, logits, tensors_in[2], mean_iou, iou_update_op])
       else:
-        real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2 = \
-            sess.run([real_loss, loss_op, labels, logits, tensors_in[2]])
+        real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2, l_run = \
+            sess.run([real_loss, loss_op, labels, logits, tensors_in[2], logits_run])
 #    if branch != 0: # to test per branch accuracy uncomment
 #      continue
     num_iter += 1
@@ -305,8 +308,8 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
     logits_all = np.concatenate((logits_all, logits_v[branch][0]), axis=0)
     labels_all = np.concatenate((labels_all, labels_v), axis=0)
     total_loss = total_loss + loss_v[0]
-    real_acc += real_loss_v
-    save_loss.append([real_loss_v, tin_out_v_2])
+    real_acc += real_loss_v[branch]
+    save_loss.append([real_loss_v[branch], tin_out_v_2])
 
     if step % 20 == 19:
       duration = time.time() - start_time
@@ -491,8 +494,9 @@ def evaluate():
     logits_all = model.inference(tensors_in, num_classes, for_training=False)
     print(logits_all)
     model.loss(logits_all, tensors_out, batch_size=FLAGS.batch_size)
-    loss_op = slim.losses.get_losses()
-
+    scope = "branch_reduce_mean:0"
+    loss_op = slim.losses.get_losses(scope)
+    print(loss_op)
     # Restore the moving average version of the learned variables for eval.
     variable_averages = tf.train.ExponentialMovingAverage(
         model.MOVING_AVERAGE_DECAY)
