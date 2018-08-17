@@ -159,7 +159,7 @@ class MyDataset(Dataset):
             else:
                 return 28738
         if self.subset == 'validation':
-	    return 14 #50
+	    return 20 #50
             if FLAGS.custom_dataset_name == "nexar_MKZ":
                 return 29
             elif FLAGS.custom_dataset_name == "nexar_vehicle_ahead":

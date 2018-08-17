@@ -278,10 +278,10 @@ def vis_discrete(tout, predict, frame_rate,
         name = tout[2]
         highres = tout[3]
 
-        isstop = tout[4]
-        turn = tout[5]
-        locs = tout[6]
-        decoded = highres
+        isstop = tout[5]
+        turn = tout[6]
+        locs = tout[7]
+#        decoded = highres
 #    print(decoded)
 #    print(speed)
 #    print(name)

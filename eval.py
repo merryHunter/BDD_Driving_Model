@@ -285,9 +285,9 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
 #                              logits_v[branch][0],
 #                              FLAGS.frame_rate/FLAGS.temporal_downsample_factor,
 #                              isample,
-#                              True,
+##                              True,
 #                              os.path.join(FLAGS.eval_dir, FLAGS.eval_viz_id),
-#         )
+ #        )
 
       tin_out_v_2 = tin_out_v[2]
     else:
@@ -297,7 +297,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
       else:
         real_loss_v, loss_v, labels_v, logits_v, tin_out_v_2 = \
             sess.run([real_loss, loss_op, labels, logits, tensors_in[2]])
-#    if branch != 0: to test per branch accuracy uncomment
+#    if branch != 0: # to test per branch accuracy uncomment
 #      continue
     num_iter += 1
     # raw predictions

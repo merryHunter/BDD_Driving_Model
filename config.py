@@ -217,16 +217,16 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag  + "_branched_tf1200/"
+    FLAGS.train_dir = "data/" + tag  + "_branched_10k_tf1200/"
     FLAGS.tensorboard_port = port
 
     # optimization related
-    FLAGS.max_steps = 4000
+    FLAGS.max_steps = 20000
     FLAGS.train_stage_name = 'stage_all'
     FLAGS.clip_gradient_threshold = 10.0
     FLAGS.momentum = 0.99
     FLAGS.num_epochs_per_decay = 4
-    FLAGS.initial_learning_rate = 1e-3
+    FLAGS.initial_learning_rate = 1e-4
     FLAGS.learning_rate_decay_factor = 0.5
 
     # NN architecture related
@@ -365,7 +365,7 @@ def common_config(phase):
     FLAGS.num_preprocess_threads = 4
     FLAGS.display_loss = 10
     FLAGS.display_summary = 10
-    FLAGS.checkpoint_interval = 500
+    FLAGS.checkpoint_interval = 2000
     FLAGS.input_queue_memory_factor = 8
     FLAGS.examples_per_shard=1
     FLAGS.use_MIMO_inputs_pipeline=True
