@@ -483,7 +483,19 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     hidden_out = tf.reshape(hidden_out, [shape[0] * shape[1], -1])
                     scope =  "softmax_linear_%s" % (FLAGS.sub_arch_selection)
                     num_classes = 6
-                    branch_output = [slim.fully_connected(hidden_out,
+                    h1 = slim.fully_connected(hidden_out,
+                                               64,
+                                               scope=scope +"hidden1"+ str(i),
+                                               activation_fn=tf.nn.relu,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)
+                    h2 = slim.fully_connected(h1,
+                                               64,
+                                               scope=scope +"hidden2"+ str(i),
+                                               activation_fn=tf.nn.relu,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer)
+                    branch_output = [slim.fully_connected(h2,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
