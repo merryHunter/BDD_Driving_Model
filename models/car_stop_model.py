@@ -487,19 +487,21 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     """
                     scope =  'softmax_linear_%s' % (FLAGS.sub_arch_selection)
                     num_classes = 6
+                    """
                     h1 = slim.fully_connected(hidden_out,
                                                64,
-                                               scope=scope +"hidden1"+ str(i),
+                                               scope=scope +'hidden1'+ str(i),
                                                activation_fn=tf.nn.relu,
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer)
                     h2 = slim.fully_connected(h1,
                                                64,
-                                               scope=scope +"hidden2"+ str(i),
+                                               scope=scope +'hidden2'+ str(i),
                                                activation_fn=tf.nn.relu,
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer)
-                    branch_output = [slim.fully_connected(h2,
+                    """
+                    branch_output = [slim.fully_connected(hidden_out,
                                                num_classes,
                                                scope=scope + str(i),
                                                activation_fn=None,
