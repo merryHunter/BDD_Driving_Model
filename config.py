@@ -196,7 +196,7 @@ def ptrain_1000_baseline_FCN(phase):
 ######################################################################################
 def set_gpu(gpus):
 #    os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-    num_gpus = 1 #len(gpus.split(","))
+    num_gpus = 1 #2 #len(gpus.split(","))
     FLAGS.num_gpus = num_gpus
 
 def set_gpu_ids(phase, train, eval_or_test):
@@ -217,7 +217,7 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag  + "_branched_4lstms_2additional_tf1200/"
+    FLAGS.train_dir = "data/" + tag  + "_branched_small_backbone_tf1200/"
     FLAGS.tensorboard_port = port
 
     # optimization related

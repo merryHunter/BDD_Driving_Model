@@ -136,6 +136,7 @@ def _tower_loss(inputs, outputs, num_classes, scope):
   # select only final loss over all branches. Now works only for 1 gpu!
   scope = "tower_0/branch_reduce_mean"
   losses = slim.losses.get_losses(scope)
+#  losses2 = slim.losses.get_losses("tower_1/branch_reduce_mean")
   # Calculate the total loss for the current tower.
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   print(regularization_losses)

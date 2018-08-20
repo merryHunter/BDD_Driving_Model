@@ -464,7 +464,10 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
             # feed into rnn
                     feature_unpacked = tf.unpack(all_features, axis=1)
-                 
+                    print(shape[0])
+                    print(shape[1])
+                    hidden_out = tf.reshape(all_features, [108, -1])
+                    """
 #                    if initial_state is not None:
 #                        begin_state = initial_state
 #                    else:
@@ -473,7 +476,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     output, state = tf.nn.rnn(stacked_lstm,
                                       feature_unpacked,
                                       dtype=tf.float32,
-                                      initial_state=begin_state, scope="rnn_"+str(i))
+                                      initial_state=begin_state, scope='rnn_'+str(i))
             # TODO: state is not used afterwards
 
             ################Final Classification#################
@@ -481,7 +484,8 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
 
                     hidden_out = tf.pack(output, axis=1, name='pack_rnn_outputs_'+str(i))
                     hidden_out = tf.reshape(hidden_out, [shape[0] * shape[1], -1])
-                    scope =  "softmax_linear_%s" % (FLAGS.sub_arch_selection)
+                    """
+                    scope =  'softmax_linear_%s' % (FLAGS.sub_arch_selection)
                     num_classes = 6
                     h1 = slim.fully_connected(hidden_out,
                                                64,

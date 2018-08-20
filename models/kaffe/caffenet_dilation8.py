@@ -14,6 +14,7 @@ class CaffeNet_dilation8(Network):
           return images
 
      def setup(self):
+        print("NETWORK SETUP ********************************************\n********")
         (self.feed('input')
              .conv(11, 11, 96, 4, 4, padding='VALID', name='conv1')
              .max_pool(3, 3, 2, 2, padding='VALID', name='pool1')
