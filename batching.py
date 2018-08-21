@@ -240,7 +240,7 @@ def batch_inputs(dataset, batch_size, train, num_preprocess_threads=None,
             shapes = [x.get_shape() for x in one_joined],
             name = "buffer_queue")
 
-        tf.scalar_summary("queue/%s/fraction_of_%d_full" % (buffer_queue.name, capacity),
+        tf.summary.scalar("queue/%s/fraction_of_%d_full" % (buffer_queue.name, capacity),
                        tf.cast(buffer_queue.size(), tf.float32) *
                        (1. / capacity))
 

@@ -156,8 +156,8 @@ def _tower_loss(inputs, outputs, num_classes, scope):
     loss_name = re.sub('%s_[0-9]*/' % model.TOWER_NAME, '', l.op.name)
     # Name each loss as '(raw)' and name the moving average version of the loss
     # as the original loss name.
-    tf.scalar_summary(loss_name +' (raw)', l)
-    tf.scalar_summary(loss_name +' (ave)', loss_averages.average(l))
+    tf.summary.scalar(loss_name +' (raw)', l)
+    tf.summary.scalar(loss_name +' (ave)', loss_averages.average(l))
     print(loss_name)
   with tf.control_dependencies([loss_averages_op]):
     total_loss = tf.identity(total_loss)
@@ -197,7 +197,7 @@ def _average_gradients(tower_grads, include_square=False):
 
     if none_count==0:
         # Average over the 'tower' dimension.
-        grad_cat = tf.concat(0, grads)
+        grad_cat = tf.concat(grads, 0)
         grad = tf.reduce_mean(grad_cat, 0)
 
         # Keep in mind that the Variables are redundant because they are shared
@@ -228,7 +228,7 @@ def _tensor_list_splits(tensor_list, nsplit):
     # this has T tensors
     for tensor in tensor_list:
         # this has N splits
-        sp = tf.split(0, nsplit, tensor)
+        sp = tf.split(tensor, nsplit) #, tensor)
         for i, split_item in enumerate(sp):
             out[i].append(split_item)
     return out
@@ -310,7 +310,7 @@ def train():
     tower_grads = []
     for i in xrange(FLAGS.num_gpus):
       with tf.device('/gpu:%s' % i):
-        with tf.name_scope('%s_%d' % (model.TOWER_NAME, i)) as scope:
+        with tf.variable_scope('%s_%d' % (model.TOWER_NAME, i)) as scope:
           tf.set_random_seed(42)
           if True:
           # I don't see any improvements by pinning all variables on CPU, so I disabled this
@@ -325,7 +325,6 @@ def train():
             # variables across all towers.
             loss = _tower_loss(input_splits[i], output_splits[i], num_classes,
                                scope)
-
             if i==0:
                 # set different learning rates for different variables
                 if hasattr(model, 'learning_rate_multipliers'):
@@ -360,13 +359,13 @@ def train():
           tf.get_variable_scope().reuse_variables()
 
           # Retain the summaries from the final tower.
-          summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
+          summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, '%s_%d' % (model.TOWER_NAME, i))
 
           # Retain the Batch Normalization updates operations only from the
           # final tower. Ideally, we should grab the updates from all towers
           # but these stats accumulate extremely fast so we can ignore the
           # other stats from the other towers without significant detriment.
-          batchnorm_updates = tf.get_collection(ops.GraphKeys.UPDATE_OPS, scope)
+          batchnorm_updates = tf.get_collection(ops.GraphKeys.UPDATE_OPS, '%s_%d' % (model.TOWER_NAME, i))
           #batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION,
           #                                      scope)
 
@@ -396,13 +395,13 @@ def train():
     summaries.extend(input_summaries)
 
     # Add a summary to track the learning rate.
-    summaries.append(tf.scalar_summary('learning_rate', lr))
+    summaries.append(tf.summary.scalar('learning_rate', lr))
 
     # Add histograms for gradients.
     for grad, var in grads:
       if grad is not None:
         summaries.append(
-            tf.histogram_summary(var.op.name + '/gradients', grad))
+            tf.summary.histogram(var.op.name + '/gradients', grad))
 
     if multiplier:
         print("-" * 40 + "\nusing learning rate multipliers")
@@ -434,7 +433,7 @@ def train():
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
  #     print(var.op.name)
-      summaries.append(tf.histogram_summary(var.op.name, var))
+      summaries.append(tf.summary.histogram(var.op.name, var))
 
     # Track the moving averages of all trainable variables.
     # Note that we maintain a "double-average" of the BatchNormalization
@@ -458,7 +457,7 @@ def train():
     saver = tf.train.Saver(tf.all_variables(),max_to_keep=100)
 
     # Build the summary operation from the last tower summaries.
-    summary_op = tf.merge_summary(summaries)
+    summary_op = tf.summary.merge(summaries)
 
     # some variables allocated for the accumulators
     if FLAGS.EWC == "stat":
@@ -519,7 +518,7 @@ def train():
     tf.train.start_queue_runners(sess=sess)
     
 
-    summary_writer = tf.train.SummaryWriter(
+    summary_writer = tf.summary.FileWriter(
         FLAGS.train_dir,
         graph_def=sess.graph.as_graph_def(add_shapes=True))
 

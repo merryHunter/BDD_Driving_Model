@@ -237,7 +237,8 @@ def inference(net_inputs, num_classes, for_training=False, scope=None, initial_s
                 # the args left for fc: input, num_outputs
                 with slim.arg_scope([slim.max_pool2d, slim.avg_pool2d], padding='VALID'):
                     # the args left for *_pool2d: kernel_size, stride
-                    with tf.op_scope([net_inputs], scope, FLAGS.arch_selection) as sc:
+                    
+                    with tf.name_scope("mynetwork", [net_inputs]) as sc:
                         end_points_collection = sc + '_end_points'
                         with slim.arg_scope([slim.conv2d, slim.fully_connected,
                                              slim.max_pool2d, slim.avg_pool2d,
@@ -337,6 +338,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
             print("-"*40, "enable basenet dropout")
 
         if FLAGS.basenet_keep_prob > 0:
+            
             net = NET({"input": processed_images},
                       FLAGS.pretrained_model_path,
                       use_dropout=use_dropout,
@@ -418,7 +420,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     all_features[i] = tf.nn.l2_normalize(all_features[i], 2)
 
         # all_features have shape: B, F, #features
-        all_features = tf.concat(2, all_features)
+        all_features = tf.concat(all_features, 2) # (2, all_features)
         ############# the RNN temporal part #############
         # get hidden layer config from commandline
         if FLAGS.dropout_LSTM_keep_prob > 0:
@@ -463,7 +465,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     stacked_lstm = tf.nn.rnn_cell.MultiRNNCell(lstms, state_is_tuple=True)
 
             # feed into rnn
-                    feature_unpacked = tf.unpack(all_features, axis=1)
+                    feature_unpacked = tf.unstack(all_features, axis=1)
                     print(shape[0])
                     print(shape[1])
                     hidden_out = tf.reshape(all_features, [108, -1])
@@ -863,7 +865,7 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     for i in range(N_COMMANDS): # for each branch
         print("logits:{0}".format(i))
         # compute loss for branch_i
-        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i), weight=masks[i])
+        part = tf.losses.softmax_cross_entropy(logits=logits[i][0], onehot_labels=dense_labels, scope="loss_" + str(i), weights=masks[i])
         parts.append(part)
    
     loss_parts = tf.convert_to_tensor(parts)
@@ -871,7 +873,7 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     print(branch_mask)
 #    loss_parts = tf.Print(loss_parts,[loss_parts],summarize=20)
     # apply the branch mask
-    my_mul = tf.mul(loss_parts, branch_mask)
+    my_mul = tf.multiply(loss_parts, branch_mask)
 
     branch_loss = tf.reduce_mean(my_mul, name="branch_reduce_mean")
     

@@ -84,6 +84,7 @@ previous_evaluated_model = None
 # TODO: detection eval and segmentation eval.
 
 def update_best_error(new_candidate):
+  print('update best error')
   if FLAGS.save_best_model:
     global best_error
     global should_save
@@ -112,9 +113,10 @@ def _eval_once(saver, summary_writer, logits_all, labels, loss_op, summary_op, t
     summary_op: Summary op.
   """
   config = tf.ConfigProto(
+    allow_soft_placement=True,
     intra_op_parallelism_threads=1)
   config.gpu_options.allow_growth = True
-
+  
   with tf.Session(config=config) as sess:
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
     if FLAGS.pretrained_model_checkpoint_path:
@@ -131,18 +133,22 @@ def _eval_once(saver, summary_writer, logits_all, labels, loss_op, summary_op, t
       print("model %s has been evaluated. Sleep for 2 mins" % ckpt_path)
       time.sleep(120)
       return
-
+    print(ckpt_path)
     # Restores from checkpoint with absolute path.
-    saver.restore(sess, ckpt_path)
+#    saver.restore(sess, ckpt_path)
 
     # Assuming model_checkpoint_path looks something like:
     #   /my-favorite-path/imagenet_train/model.ckpt-0,
     # extract global_step from it.
+
     global_step = ckpt_path.split('/')[-1].split('-')[-1]
-    print('Succesfully loaded model from %s at step=%s.' %
-          (ckpt_path, global_step))
+ #   print('Succesfully loaded model from %s at step=%s.' %
+ #         (ckpt_path, global_step))
+    print("Global step:{0}".format(global_step))
+    saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 
-
+    init_op = tf.initialize_all_variables()
+    sess.run(init_op)
     # Start the queue runners.
     coord = tf.train.Coordinator()
     try:
@@ -164,15 +170,15 @@ def _eval_once(saver, summary_writer, logits_all, labels, loss_op, summary_op, t
           if f.endswith(".bestmodel"):
             os.remove(os.path.join(FLAGS.checkpoint_dir, f))
         # save for the current round
-        copyfile(ckpt_path, ckpt_path + ".bestmodel")
+#        copyfile(ckpt_path, ckpt_path + ".bestmodel")
         should_save = False
-        print("saving model finished, you could interrupt now")
+#        print("saving model finished, you could interrupt now")
 
     except Exception as e:  # pylint: disable=broad-except
       coord.request_stop(e)
 
     coord.request_stop()
-    coord.join(threads, stop_grace_period_secs=10)
+    coord.join(threads, stop_grace_period_secs=1)
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -234,7 +240,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
                                             19,
                                             weights=weight)
   # TODO: not proper loss computation
-  real_loss = tf.nn.softmax_cross_entropy_with_logits(logits_all_param[0], labels)
+  real_loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits_all_param[0], labels=labels)
   real_loss = tf.reduce_mean(real_loss)
 
   total_loss = 0.0
@@ -250,7 +256,7 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
   real_branches = []
   for j in range(4):
     logits_branches.append(tf.nn.softmax(logits_all_param[j]))
-    r = tf.nn.softmax_cross_entropy_with_logits(logits_all_param[j], labels)
+    r = tf.nn.softmax_cross_entropy_with_logits(logits=logits_all_param[j], labels=labels)
     real_branches.append(tf.reduce_mean(r))
   logits_run = tf.convert_to_tensor(logits_branches)
   real_run = tf.convert_to_tensor(real_branches)
@@ -260,9 +266,10 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
   summary = tf.Summary()
   need_summary_every_batch = False
 
-  init_op = tf.initialize_local_variables()
-  sess.run(init_op)
-
+#  init_op = tf.initialize_local_variables()
+#  sess.run(init_op)
+#  init_op = tf.initialize_all_variables()
+#  sess.run(init_op)
   num_it = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
   print(FLAGS.batch_size)
   print(FLAGS.num_examples)
@@ -349,21 +356,21 @@ def car_discrete(logits_all_param, labels_in, loss_op, sess, coord, summary_op, 
       diff_dict[int2str[i]] = class_diff[i]
       class_names.append(int2str[i])
 
-  
+  print('before parse from string') 
 
-  summary.ParseFromString(sess.run(summary_op))
-  summary.value.add(tag='test_loss', simple_value=total_loss)
-  summary.value.add(tag='test_loss_unbias', simple_value=real_acc)
+#  summary.ParseFromString(sess.run(summary_op))
+#  summary.value.add(tag='test_loss', simple_value=total_loss)
+#  summary.value.add(tag='test_loss_unbias', simple_value=real_acc)
   update_best_error(real_acc)
 
-  summary.value.add(tag='accuracy', simple_value=accuracy)
+ # summary.value.add(tag='accuracy', simple_value=accuracy)
   if FLAGS.city_data:
     summary.value.add(tag='meanIOU', simple_value=float(mean_iou_v))
 
   print("weighted cross entropy=%f, unbias test loss=%f, accuracy=%f, class wise diff:" % (total_loss, real_acc, accuracy))
   for key in diff_dict.keys():
     print("class %s diff = %f" % (key, diff_dict[key]))
-    summary.value.add(tag='class_diff/%s' % key, simple_value=np.asscalar(diff_dict[key]))
+  #  summary.value.add(tag='class_diff/%s' % key, simple_value=np.asscalar(diff_dict[key]))
 
   # add the confusion matrix
   np.set_printoptions(precision=2)
@@ -501,17 +508,23 @@ def evaluate():
     variable_averages = tf.train.ExponentialMovingAverage(
         model.MOVING_AVERAGE_DECAY)
     variables_to_restore = variable_averages.variables_to_restore()
-    saver = tf.train.Saver(variables_to_restore)
+
+    ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+    ckpt_path = ckpt.model_checkpoint_path
+#    print("CKPT:{0}".format(ckpt_path))
+#    global_step = ckpt_path.split('/')[-1].split('-')[-1] 
+    new_saver = tf.train.import_meta_graph(ckpt_path+'.meta')
+  #  new_saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
 
     # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.merge_all_summaries()
+    summary_op = tf.summary.merge_all()
 
     graph_def = tf.get_default_graph().as_graph_def(add_shapes=True)
-    summary_writer = tf.train.SummaryWriter(FLAGS.eval_dir,
+    summary_writer = tf.summary.FileWriter(FLAGS.eval_dir,
                                             graph_def=graph_def)
 
     while True:
-      _eval_once(saver, summary_writer, logits_all, tensors_out, loss_op, summary_op, tensors_in)
+      _eval_once(new_saver, summary_writer, logits_all, tensors_out, loss_op, summary_op, tensors_in)
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)

@@ -217,7 +217,7 @@ def set_train_stage(isFirstStage, offset):
 def common_final_settings(phase, tag, port, basenet="32s", visEval=False, ptrain=False):
     # resource related
     FLAGS.unique_experiment_name = tag
-    FLAGS.train_dir = "data/" + tag  + "_branched_small_backbone_noextra_tf1200/"
+    FLAGS.train_dir = "data/" + tag  + "_branched_tf1200_newapi/"
     FLAGS.tensorboard_port = port
 
     # optimization related
@@ -365,7 +365,7 @@ def common_config(phase):
     FLAGS.num_preprocess_threads = 4
     FLAGS.display_loss = 10
     FLAGS.display_summary = 10
-    FLAGS.checkpoint_interval = 2000
+    FLAGS.checkpoint_interval = 500
     FLAGS.input_queue_memory_factor = 8
     FLAGS.examples_per_shard=1
     FLAGS.use_MIMO_inputs_pipeline=True

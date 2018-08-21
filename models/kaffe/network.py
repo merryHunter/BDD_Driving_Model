@@ -115,7 +115,7 @@ class Network(object):
         return self.data_dict[scp_name][name]
 
     def make_var(self, name, shape):
-        if hasattr(self, 'data_dict'):
+        if hasattr(self, 'data_dicts'):
             try:
                 # assume it's a new variable
                 v = tf.get_variable(name,
@@ -125,6 +125,7 @@ class Network(object):
                 # it has existed
                 scope = tf.get_variable_scope()
                 scope.reuse_variables()
+                print(name)
                 print("make scope ", scope, " reuse=True")
                 v = tf.get_variable(name)
             return v
@@ -188,11 +189,12 @@ class Network(object):
                 output = convolve(input, kernel)
             else:
                 # Split the input into groups and then convolve each of them independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
+                input_groups = tf.split(input, group,3 ) #3, group, input)
+                kernel_groups = tf.split(input, group, 3)  #3, group, kernel)
+                print("groups:{0},{1}".format(input_groups, kernel_groups))
                 output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, 3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -313,7 +315,9 @@ class Network(object):
 
         # channel swap
         reverse_dim = [False for _ in range(shape.ndims - 1)] + [True]
-        images = tf.reverse(images, reverse_dim)
+        print(reverse_dim)
+        reverse_dim = [np.argmax(reverse_dim)]
+        images = tf.reverse_v2(images, reverse_dim)
 
         # cast type
         images = tf.cast(images, tf.float32)

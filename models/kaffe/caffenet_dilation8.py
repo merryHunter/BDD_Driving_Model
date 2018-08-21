@@ -19,11 +19,11 @@ class CaffeNet_dilation8(Network):
              .conv(11, 11, 96, 4, 4, padding='VALID', name='conv1')
              .max_pool(3, 3, 2, 2, padding='VALID', name='pool1')
              .lrn(2, 2e-05, 0.75, name='norm1')
-             .conv(5, 5, 256, 1, 1, group=2, name='conv2')
+             .conv(5, 5, 256, 1, 1, group=1, name='conv2') # group2
              .lrn(2, 2e-05, 0.75, name='norm2')
              .conv(3, 3, 384, 1, 1, name='conv3', rate=2)
-             .conv(3, 3, 384, 1, 1, group=2, name='conv4', rate=2)
-             .conv(3, 3, 256, 1, 1, group=2, name='conv5', rate=2)
+             .conv(3, 3, 384, 1, 1, group=1, name='conv4', rate=2) # group2
+             .conv(3, 3, 256, 1, 1, group=1, name='conv5', rate=2) # group2
              .conv(6, 6, 4096, 1, 1, padding='VALID', name='fc6', rate=4)
              .dropout(0.5, name="drop6")
              .conv(1, 1, 4096, 1, 1, padding='VALID', name='fc7', rate=1)
