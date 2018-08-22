@@ -134,10 +134,11 @@ def _tower_loss(inputs, outputs, num_classes, scope):
   #losses = tf.get_collection(slim.losses.LOSSES_COLLECTION, scope)
 
   # select only final loss over all branches. Now works only for 1 gpu!
-  scope = "tower_0/branch_reduce_mean"
-  losses = slim.losses.get_losses(scope)
+  scope = "branch_reduce_mean"
+  losses = tf.losses.get_losses()
 #  losses2 = slim.losses.get_losses("tower_1/branch_reduce_mean")
   # Calculate the total loss for the current tower.
+  print("BRACH LOSS:{0}".format(losses))
   regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   print(regularization_losses)
   
@@ -492,6 +493,7 @@ def train():
     if FLAGS.pretrained_model_checkpoint_path:
       assert tf.gfile.Exists(FLAGS.pretrained_model_checkpoint_path)
       #variables_to_restore = tf.get_collection(slim.variables.VARIABLES_TO_RESTORE)
+      """
       variables_to_restore = slim.get_variables_to_restore()
 
       # only restore those that are in the checkpoint
@@ -504,13 +506,17 @@ def train():
         else:
             ignore_vars.append(x.op.name)
       if len(ignore_vars)>0:
-          print("-"*40+"\nWarning: Some variables does not exists in the checkpoint, ignore them: ")
+          print('-'*40+'\nWarning: Some variables does not exists in the checkpoint, ignore them: ')
           for x in ignore_vars:
               print(x)
       variables_to_restore = restore_new
-
-      restorer = tf.train.Saver(variables_to_restore)
-      restorer.restore(sess, FLAGS.pretrained_model_checkpoint_path)
+      """
+#      restorer = tf.train.Saver(variables_to_restore)
+      ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+      ckpt_path = ckpt.model_checkpoint_path
+      saver = tf.train.import_meta_graph(ckpt_path+'.meta')
+      saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
+#      restorer.restore(sess, FLAGS.pretrained_model_checkpoint_path)
       print('%s: Pre-trained model restored from %s' %
             (datetime.now(), FLAGS.pretrained_model_checkpoint_path))
 
@@ -652,13 +658,16 @@ def main(_):
     # find the largest step number: -??
     max_step = -1
     for f in os.listdir(FLAGS.train_dir):
-        m = re.search('^model.ckpt-([\d]+)$', f)
+        print(f)
+        m = re.search(r'^model.ckpt-([\d]+)', f)
+        print("SEARCH")
+        print(m)
         if m:
             found = int(m.group(1))
             if found > max_step:
                 max_step = found
     if max_step >= 0:
-        ckpt = os.path.join(FLAGS.train_dir, 'model.ckpt-%d' % max_step)
+        ckpt = os.path.join(FLAGS.train_dir, 'model.ckpt-%d.meta' % max_step)
         FLAGS.pretrained_model_checkpoint_path = ckpt
         print("resume training from saved model: % s" % ckpt)
   else:

@@ -237,8 +237,7 @@ def inference(net_inputs, num_classes, for_training=False, scope=None, initial_s
                 # the args left for fc: input, num_outputs
                 with slim.arg_scope([slim.max_pool2d, slim.avg_pool2d], padding='VALID'):
                     # the args left for *_pool2d: kernel_size, stride
-                    
-                    with tf.name_scope("mynetwork", [net_inputs]) as sc:
+                    with tf.name_scope("tower0", FLAGS.arch_selection, [net_inputs]) as sc:
                         end_points_collection = sc + '_end_points'
                         with slim.arg_scope([slim.conv2d, slim.fully_connected,
                                              slim.max_pool2d, slim.avg_pool2d,
@@ -459,6 +458,7 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
             for i in range(N_COMMANDS):
                 with tf.name_scope("Branch_" + str(i)):
                  # the multilayer stacked LSTM
+                    """
                     lstms = []
                     for hidden in splits:
                         lstms.append(tf.nn.rnn_cell.BasicLSTMCell(hidden, state_is_tuple=True))
@@ -468,15 +468,15 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
                     feature_unpacked = tf.unstack(all_features, axis=1)
                     print(shape[0])
                     print(shape[1])
-                    hidden_out = tf.reshape(all_features, [108, -1])
-                    """
+#                    hidden_out = tf.reshape(all_features, [108, -1])
+                    
 #                    if initial_state is not None:
 #                        begin_state = initial_state
 #                    else:
                     begin_state = stacked_lstm.zero_state(shape[0], dtype=tf.float32)
 
-                    output, state = tf.nn.rnn(stacked_lstm,
-                                      feature_unpacked,
+                    output, state = tf.nn.dynamic_rnn(stacked_lstm,
+                                      all_features, # feature_unpacked
                                       dtype=tf.float32,
                                       initial_state=begin_state, scope='rnn_'+str(i))
             # TODO: state is not used afterwards
@@ -484,9 +484,11 @@ def LRCN(net_inputs, num_classes, for_training, initial_state=None):
             ################Final Classification#################
             # concatentate outputs into a single tensor, the output size is (batch*nframe, hidden[-1])
 
-                    hidden_out = tf.pack(output, axis=1, name='pack_rnn_outputs_'+str(i))
-                    hidden_out = tf.reshape(hidden_out, [shape[0] * shape[1], -1])
+#                    hidden_out = tf.stack(output, axis=1, name='pack_rnn_outputs_'+str(i))
+                    print(output)
+                    hidden_out = tf.reshape(output, [shape[0] * shape[1], -1])
                     """
+                    hidden_out = tf.reshape(all_features, [108, -1])
                     scope =  'softmax_linear_%s' % (FLAGS.sub_arch_selection)
                     num_classes = 6
                     """
@@ -785,7 +787,7 @@ def loss_car_stop(logits, net_outputs, batch_size=None):
     # Cross entropy loss for the main softmax prediction.
     slim.losses.softmax_cross_entropy(prediction, dense_labels, weight = mask)
 
-def loss_car_discrete_original(logits, net_outputs, batch_size=None):
+def loss_car_discrete_orig(logits, net_outputs, batch_size=None):
     # net_outputs contains is_stop, turn
     dense_labels = net_outputs[1]    # shape: N * F * nclass
     # reshape to 2 dimension
@@ -816,7 +818,7 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     # reshape to 2 dimension
     num_classes = dense_labels.get_shape()[-1].value
     dense_labels = tf.reshape(dense_labels, [-1, num_classes])
-
+    print("DENSE:{0},\nshape:{1}".format(dense_labels,tf.shape(dense_labels)))
     """
     Now we use the same class weights for all branches. 
     It is left as a placeholder to use weighting training per branch separately.    
@@ -851,7 +853,7 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     parts = []
     branch_mask = net_outputs[-1][0][0] # 2 | 3 | 4 | 5 , feed at data_provider/nexar_large_speed.py
     branch_mask = tf.one_hot(branch_mask, N_COMMANDS) # command control, 4 commands
-    
+#    dense_labels = tf.Print(dense_labels, [dense_labels], summarize=600)
     # class imbalance masks for each branch, now all are the same 
     masks = {0: mask0, 1: mask1, 2: mask2, 3: mask3}
   
@@ -865,7 +867,9 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     for i in range(N_COMMANDS): # for each branch
         print("logits:{0}".format(i))
         # compute loss for branch_i
-        part = tf.losses.softmax_cross_entropy(logits=logits[i][0], onehot_labels=dense_labels, scope="loss_" + str(i), weights=masks[i])
+        part = tf.losses.softmax_cross_entropy(logits=logits[i][0], onehot_labels=dense_labels, 
+                                               loss_collection=None, scope="loss_" + str(i)) #, weights=masks[i])
+#        part = slim.losses.softmax_cross_entropy(logits[i][0], dense_labels, scope="loss_" + str(i), weight=masks[i])
         parts.append(part)
    
     loss_parts = tf.convert_to_tensor(parts)
@@ -876,9 +880,9 @@ def loss_car_discrete(logits, net_outputs, batch_size=None):
     my_mul = tf.multiply(loss_parts, branch_mask)
 
     branch_loss = tf.reduce_mean(my_mul, name="branch_reduce_mean")
-    
+#    branch_loss = tf.Print(branch_loss, [branch_loss], summarize=560)
     # important step, in train.py during average gradient, we take only that loss and discard separate losses for each branch.
-    slim.losses.add_loss(branch_loss)
+    tf.losses.add_loss(branch_loss)
 
 
 ##################### Loss Functions of the continous discritized #########

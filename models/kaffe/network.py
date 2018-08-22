@@ -125,9 +125,9 @@ class Network(object):
                 # it has existed
                 scope = tf.get_variable_scope()
                 scope.reuse_variables()
-                print(name)
                 print("make scope ", scope, " reuse=True")
-                v = tf.get_variable(name)
+                with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+                    v = tf.get_variable(name)
             return v
 
         else:
@@ -177,7 +177,8 @@ class Network(object):
             convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
         else:
             convolve = lambda i, k: tf.nn.atrous_conv2d(i, k, padding=padding, rate=rate)
-
+        print(c_i)
+        print(group)
         with tf.variable_scope(name) as scope:
             kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
             print("weight decay inside network.py = ", weight_decay)

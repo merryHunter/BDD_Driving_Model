@@ -145,10 +145,10 @@ def _eval_once(saver, summary_writer, logits_all, labels, loss_op, summary_op, t
  #   print('Succesfully loaded model from %s at step=%s.' %
  #         (ckpt_path, global_step))
     print("Global step:{0}".format(global_step))
-    saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
-
+    #saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
     init_op = tf.initialize_all_variables()
     sess.run(init_op)
+    saver.restore(sess, tf.train.latest_checkpoint(FLAGS.checkpoint_dir))
     # Start the queue runners.
     coord = tf.train.Coordinator()
     try:
@@ -501,8 +501,8 @@ def evaluate():
     logits_all = model.inference(tensors_in, num_classes, for_training=False)
     print(logits_all)
     model.loss(logits_all, tensors_out, batch_size=FLAGS.batch_size)
-    scope = "branch_reduce_mean:0"
-    loss_op = slim.losses.get_losses(scope)
+    scope = "tower_0/branch_reduce_mean"
+    loss_op = tf.losses.get_losses()
     print(loss_op)
     # Restore the moving average version of the learned variables for eval.
     variable_averages = tf.train.ExponentialMovingAverage(
